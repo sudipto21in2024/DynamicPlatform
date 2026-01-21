@@ -1,0 +1,44 @@
+# .NET Core
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.launchSettings.json
+
+# Node.js / Angular
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.angular/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# OS Generated
+.DS_Store
+Thumbs.db
+
+# Project Specific
+*.zip
+*.log
+api_log.txt
+build_log.txt
+build_error.txt
+build_out.txt
+runtime_error.txt
+msbuild.log
+entities.json
+entities_v2.json
+project_data.json
+DemoBuild/
+DemoBuild_v*/
