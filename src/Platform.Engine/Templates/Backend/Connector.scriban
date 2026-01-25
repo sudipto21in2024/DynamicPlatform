@@ -1,0 +1,39 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Platform.Core.Interfaces;
+
+namespace {{Namespace}};
+
+/// <summary>
+/// Custom Connector: {{Name}}
+/// {{Description}}
+/// </summary>
+public class {{Name}}Connector : IConnector
+{
+    public string Name => "{{Name}}";
+
+    {{~ for prop in ConfigProperties ~}}
+    public {{prop.Type}} {{prop.Name}} { get; set; } {{~ if prop.DefaultValue ~}} = "{{prop.DefaultValue}}"; {{~ end ~}}
+    {{~ end ~}}
+
+    public async Task<object?> ExecuteAsync(IDictionary<string, object?> inputs)
+    {
+        // Extracting Inputs
+        {{~ for input in Inputs ~}}
+        var {{input.Name}} = inputs.ContainsKey("{{input.Name}}") ? ({{input.Type}})inputs["{{input.Name}}"]! : default;
+        {{~ end ~}}
+
+        try 
+        {
+            // Business Logic execution start
+            {{BusinessLogic}}
+            // Business Logic execution end
+        }
+        catch (Exception ex)
+        {
+            // Logging would go here
+            throw new Exception($"Error executing connector {{Name}}: {ex.Message}", ex);
+        }
+    }
+}

@@ -1,0 +1,43 @@
+# Azure Deployment Script for {{Name}}
+# Prerequisites: Azure CLI installed (az login)
+
+$ResourceGroupName = "rg-{{NameTrimmed}}"
+$Location = "eastus"
+$AppServicePlanName = "plan-{{NameTrimmed}}"
+$WebAppName = "app-{{UniqueId}}"
+$ImageName = "{{NameTrimmed}}:latest"
+$AcrName = "acr{{UniqueId}}" # Needs to be globally unique
+
+Write-Output "Starting deployment for {{Name}}..."
+
+# 1. Create Resource Group
+az group create --name $ResourceGroupName --location $Location
+
+# 2. Create Azure Container Registry
+az acr create --resource-group $ResourceGroupName --name $AcrName --sku Basic --admin-enabled true
+$LoginServer = az acr show --name $AcrName --query loginServer --output tsv
+$AcrPassword = az acr credential show --name $AcrName --query "passwords[0].value" --output tsv
+
+# 3. Build and Push Image
+Write-Output "Building Docker image..."
+docker build -t $ImageName .
+docker tag $ImageName "$LoginServer/$ImageName"
+
+Write-Output "Pushing image to ACR..."
+az acr login --name $AcrName
+docker push "$LoginServer/$ImageName"
+
+# 4. Create App Service Plan (Linux)
+az appservice plan create --name $AppServicePlanName --resource-group $ResourceGroupName --sku B1 --is-linux
+
+# 5. Create Web App for Containers
+Write-Output "Creating Web App..."
+az webapp create --resource-group $ResourceGroupName --plan $AppServicePlanName --name $WebAppName --deployment-container-image-name "$LoginServer/$ImageName"
+
+# 6. Configure Connection String & Environment
+$ConnString = "{{ConnectionString}}"
+az webapp config connection-string set --resource-group $ResourceGroupName --name $WebAppName --connection-string-type Postgres --settings DefaultConnection="$ConnString"
+az webapp config appsettings set --resource-group $ResourceGroupName --name $WebAppName --settings WEBSITES_PORT=8080
+
+Write-Output "Deployment Complete!"
+Write-Output "URL: https://$WebAppName.azurewebsites.net/swagger"

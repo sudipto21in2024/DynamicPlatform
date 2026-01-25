@@ -22,6 +22,8 @@ public class BuildController : ControllerBase
     private readonly DbContextGenerator _dbGen;
     private readonly RepositoryGenerator _repoGen;
     private readonly ControllerGenerator _controllerGen;
+    private readonly ProjectGenerator _projectGen;
+    private readonly ConnectorGenerator _connectorGen;
     private readonly AngularComponentGenerator _frontendGen;
     private readonly MetadataLoader _loader;
     private readonly RelationNormalizationService _relationService;
@@ -32,6 +34,8 @@ public class BuildController : ControllerBase
         DbContextGenerator dbGen, 
         RepositoryGenerator repoGen,
         ControllerGenerator controllerGen,
+        ProjectGenerator projectGen,
+        ConnectorGenerator connectorGen,
         AngularComponentGenerator frontendGen,
         MetadataLoader loader,
         RelationNormalizationService relationService)
@@ -41,6 +45,8 @@ public class BuildController : ControllerBase
         _dbGen = dbGen;
         _repoGen = repoGen;
         _controllerGen = controllerGen;
+        _projectGen = projectGen;
+        _connectorGen = connectorGen;
         _frontendGen = frontendGen;
         _loader = loader;
         _relationService = relationService;
@@ -51,18 +57,30 @@ public class BuildController : ControllerBase
     {
         var artifacts = await _repo.GetByProjectIdAsync(projectId);
         var initialEntities = new List<EntityMetadata>();
+        var connectors = new List<ConnectorMetadata>();
+        var project = await _repo.GetProjectByIdAsync(projectId);
+        var baseNamespace = project?.Name.Replace(" ", "") ?? "GeneratedApp";
 
         // 1. Load Metadata
-        foreach (var artifact in artifacts.Where(a => a.Type == ArtifactType.Entity))
+        foreach (var artifact in artifacts)
         {
-            var metadata = _loader.LoadEntityMetadata(artifact);
-            if (metadata != null)
+            if (artifact.Type == ArtifactType.Entity)
             {
-                if (string.IsNullOrEmpty(metadata.Namespace))
+                var metadata = _loader.LoadEntityMetadata(artifact);
+                if (metadata != null)
                 {
-                    metadata.Namespace = "GeneratedApp.Entities";
+                    metadata.Namespace = metadata.Namespace ?? $"{baseNamespace}.Entities";
+                    initialEntities.Add(metadata);
                 }
-                initialEntities.Add(metadata);
+            }
+            else if (artifact.Type == ArtifactType.Connector)
+            {
+                var connMetadata = _loader.LoadConnectorMetadata(artifact);
+                if (connMetadata != null)
+                {
+                    connMetadata.Namespace = connMetadata.Namespace ?? $"{baseNamespace}.Connectors";
+                    connectors.Add(connMetadata);
+                }
             }
         }
 
@@ -72,36 +90,105 @@ public class BuildController : ControllerBase
         using var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
-            foreach (var entity in entities)
+            // 3. Generate Infrastructure (Full Code Export)
+            var apiNamespace = $"{baseNamespace}.API";
+            
+            // .csproj
+            var csprojCode = _projectGen.GenerateCsproj(apiNamespace);
+            AddFileToZip(archive, $"{apiNamespace}/{apiNamespace}.csproj", csprojCode);
+
+            // Program.cs (Pass both entities and connectors for DI registration)
+            var programCode = _projectGen.GenerateProgram(apiNamespace, entities, connectors);
+            AddFileToZip(archive, $"{apiNamespace}/Program.cs", programCode);
+
+            foreach (var connector in connectors)
             {
-                // 3. Generate Entity
-                var entityCode = _entityGen.Generate(entity);
-                AddFileToZip(archive, $"Entities/{entity.Name}.cs", entityCode);
-
-                // 4. Generate Repository
-                var repoCode = _repoGen.Generate(entity);
-                AddFileToZip(archive, $"Repositories/{entity.Name}Repository.cs", repoCode);
-
-                // 5. Generate Controller
-                var controllerCode = _controllerGen.Generate(entity);
-                AddFileToZip(archive, $"Controllers/{entity.Name}Controller.cs", controllerCode);
-
-                // 6. Generate Frontend Component
-                var frontendCode = _frontendGen.Generate(entity);
-                AddFileToZip(archive, $"Frontend/metrics/{entity.Name.ToLower()}/{entity.Name.ToLower()}.component.ts", frontendCode);
+                var connectorCode = _connectorGen.Generate(connector);
+                AddFileToZip(archive, $"{apiNamespace}/Connectors/{connector.Name}Connector.cs", connectorCode);
             }
 
-            // 7. Generate DbContext
+            foreach (var entity in entities)
+            {
+                // 4. Generate Entity
+                entity.Namespace = $"{apiNamespace}.Entities";
+                var entityCode = _entityGen.Generate(entity);
+                AddFileToZip(archive, $"{apiNamespace}/Entities/{entity.Name}.cs", entityCode);
+
+                // 5. Generate Repository
+                entity.Namespace = $"{apiNamespace}.Repositories";
+                var repoCode = _repoGen.Generate(entity);
+                AddFileToZip(archive, $"{apiNamespace}/Repositories/{entity.Name}Repository.cs", repoCode);
+
+                // 6. Generate Controller
+                entity.Namespace = $"{apiNamespace}.Controllers";
+                var controllerCode = _controllerGen.Generate(entity);
+                AddFileToZip(archive, $"{apiNamespace}/Controllers/{entity.Name}Controller.cs", controllerCode);
+
+                // 7. Generate Frontend Component
+                var frontendCode = _frontendGen.Generate(entity);
+                AddFileToZip(archive, $"Frontend/src/app/pages/{entity.Name.ToLower()}/{entity.Name.ToLower()}.component.ts", frontendCode);
+            }
+
+            // 8. Generate DbContext
             if (entities.Any())
             {
-                var dbNamespace = "GeneratedApp.Data";
+                var dbNamespace = $"{apiNamespace}.Data";
                 var dbCode = _dbGen.Generate(dbNamespace, entities);
-                AddFileToZip(archive, "Data/GeneratedDbContext.cs", dbCode);
+                AddFileToZip(archive, $"{apiNamespace}/Data/GeneratedDbContext.cs", dbCode);
+            }
+
+            // 9. Add appsettings.json for Data Isolation
+            if (project != null)
+            {
+                var appSettings = $@"{{
+  ""ConnectionStrings"": {{
+    ""DefaultConnection"": ""{project.IsolatedConnectionString}""
+  }},
+  ""Logging"": {{
+    ""LogLevel"": {{
+      ""Default"": ""Information"",
+      ""Microsoft.AspNetCore"": ""Warning""
+    }}
+  }}
+}}";
+                AddFileToZip(archive, $"{apiNamespace}/appsettings.json", appSettings);
+            }
+
+            // 10. Add Standalone Dockerfile for the exported app
+            var standaloneDockerfile = $@"FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /app
+COPY . .
+RUN dotnet publish {apiNamespace}/{apiNamespace}.csproj -c Release -o out
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+COPY --from=build /app/out .
+ENTRYPOINT [""dotnet"", ""{apiNamespace}.dll""]";
+            
+            AddFileToZip(archive, "Dockerfile", standaloneDockerfile);
+
+            // 11. Add Azure Deployment Script
+            if (project != null)
+            {
+                var azureDeployScript = _projectGen.GenerateAzureDeploy(project.Name, project.IsolatedConnectionString ?? "", project.Id.ToString());
+                AddFileToZip(archive, "deploy-azure.ps1", azureDeployScript);
+
+                var azureReadme = _projectGen.GenerateAzureReadme();
+                AddFileToZip(archive, "README_AZURE.md", azureReadme);
             }
         }
 
         memoryStream.Position = 0;
-        return File(memoryStream.ToArray(), "application/zip", $"Project_{projectId}_Build.zip");
+        return File(memoryStream.ToArray(), "application/zip", $"{baseNamespace}_Standalone_Export.zip");
+    }
+
+    [HttpPost("publish")]
+    public IActionResult PublishProject(Guid projectId)
+    {
+        // This is a stub for the shared environment publishing logic.
+        // In a real scenario, this would trigger a CI/CD pipeline or 
+        // deploy the container to a shared K8s/AppService cluster.
+        return Ok(new { message = "Project scheduled for publication to the shared environment." });
     }
 
     private void AddFileToZip(ZipArchive archive, string path, string content)

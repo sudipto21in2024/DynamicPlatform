@@ -9,6 +9,7 @@ public interface IArtifactRepository
 {
     Task<IEnumerable<Artifact>> GetByProjectIdAsync(Guid projectId);
     Task<Artifact?> GetByIdAsync(Guid id);
+    Task<Project?> GetProjectByIdAsync(Guid id);
     Task AddAsync(Artifact artifact);
     Task UpdateAsync(Artifact artifact);
     Task DeleteAsync(Guid id);

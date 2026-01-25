@@ -21,6 +21,10 @@ public class Project
     public string Version { get; set; } = "1.0.0";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    // Isolation Properties
+    public string? TargetDbName { get; set; }
+    public string? IsolatedConnectionString { get; set; }
 
     // Navigation
     public virtual ICollection<Artifact>? Artifacts { get; set; }

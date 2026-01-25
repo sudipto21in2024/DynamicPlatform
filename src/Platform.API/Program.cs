@@ -36,6 +36,8 @@ builder.Services.AddScoped<EntityGenerator>();
 builder.Services.AddScoped<DbContextGenerator>();
 builder.Services.AddScoped<RepositoryGenerator>();
 builder.Services.AddScoped<ControllerGenerator>();
+builder.Services.AddScoped<ProjectGenerator>();
+builder.Services.AddScoped<ConnectorGenerator>();
 builder.Services.AddScoped<AngularComponentGenerator>();
 builder.Services.AddScoped<Platform.Engine.Services.MetadataLoader>();
 builder.Services.AddScoped<Platform.Engine.Services.RelationNormalizationService>();

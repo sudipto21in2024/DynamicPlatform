@@ -1,0 +1,67 @@
+using Microsoft.EntityFrameworkCore;
+using {{Namespace}}.Data;
+using {{Namespace}}.Repositories;
+using {{Namespace}}.Connectors;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
+});
+
+// DB Context
+builder.Services.AddDbContext<GeneratedDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Repositories Registration
+{{~ for entity in Entities ~}}
+builder.Services.AddScoped<{{entity.Name}}Repository>();
+{{~ end ~}}
+
+// Connectors Registration
+{{~ for connector in Connectors ~}}
+builder.Services.AddScoped<{{connector.Name}}Connector>();
+{{~ end ~}}
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseCors("AllowAll");
+app.UseAuthorization();
+app.MapControllers();
+
+// Database initialization
+try
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<GeneratedDbContext>();
+        db.Database.EnsureCreated();
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"DB Init Error: {ex.Message}");
+}
+
+app.Run();

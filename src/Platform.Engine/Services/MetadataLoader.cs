@@ -28,5 +28,20 @@ public class MetadataLoader
             // Logging or error handling
             return null;
         }
+    public ConnectorMetadata? LoadConnectorMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.Connector)
+        {
+            throw new ArgumentException("Artifact is not a Connector type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<ConnectorMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

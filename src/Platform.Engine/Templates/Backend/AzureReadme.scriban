@@ -1,0 +1,24 @@
+# Deploying to Azure App Service
+
+This project includes an automated deployment script `deploy-azure.ps1` to host your application independently in Azure.
+
+## Prerequisites
+1. **Azure CLI**: [Install here](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+2. **Docker**: Must be running locally to build the production image.
+3. **Login**: Run `az login` in your terminal before executing the script.
+
+## What the script does:
+- Creates an **Isolated Resource Group**.
+- Provisions an **Azure Container Registry (ACR)**.
+- Builds and pushes your app's Docker image to ACR.
+- Creates an **App Service Plan (Linux)**.
+- Deploys the app as a **Web App for Containers**.
+- Configures your **Isolated PostgreSQL Connection String** automatically.
+
+## How to run:
+Open PowerShell and run:
+```powershell
+./deploy-azure.ps1
+```
+
+Once complete, your app will be live at: `https://app-[unique-id].azurewebsites.net/swagger`

@@ -34,9 +34,17 @@ import { ApiService } from '../../services/api';
             <span class="material-icons-outlined text-lg">save</span>
             <span>Save</span>
           </button>
-          <button (click)="build()" class="flex items-center space-x-2 text-sm bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg shadow-lg shadow-blue-900/50 transition-all transform active:scale-95">
-             <span class="material-icons-outlined text-lg">bolt</span>
-             <span>Generate</span>
+          
+          <div class="h-6 w-px bg-white/10 mx-2"></div>
+
+          <button (click)="buildAsZip()" class="group flex items-center space-x-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 px-4 py-2 rounded-lg transition-all shadow-lg active:scale-95">
+             <span class="material-icons-outlined text-lg text-amber-400 group-hover:scale-110 transition-transform">folder_zip</span>
+             <span>Output as ZIP</span>
+          </button>
+
+          <button (click)="publish()" [disabled]="isPublishing" class="flex items-center space-x-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg shadow-lg shadow-indigo-900/50 transition-all transform active:scale-95">
+             <span class="material-icons-outlined text-lg">{{ isPublishing ? 'sync' : 'cloud_upload' }}</span>
+             <span>{{ isPublishing ? 'Publishing...' : 'Publish to Cloud' }}</span>
           </button>
         </div>
       </div>
@@ -412,18 +420,36 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
     });
   }
 
-  build() {
+  isPublishing = false;
+
+  buildAsZip() {
     if (!this.projectId) return;
     this.api.buildProject(this.projectId).subscribe({
       next: (blob) => {
         const url = globalThis.URL.createObjectURL(blob);
         const a = globalThis.document.createElement('a');
         a.href = url;
-        a.download = `Build_${this.projectId}.zip`;
+        const projectName = this.entities[0]?.namespace?.split('.')[0] || 'Project';
+        a.download = `${projectName}_Standalone_Export.zip`;
         a.click();
         globalThis.URL.revokeObjectURL(url);
       },
       error: (err) => alert('Build failed: ' + err.message)
+    });
+  }
+
+  publish() {
+    if (!this.projectId) return;
+    this.isPublishing = true;
+    this.api.publishProject(this.projectId).subscribe({
+      next: (res) => {
+        this.isPublishing = false;
+        alert('Project successfully published to the shared environment!');
+      },
+      error: (err) => {
+        this.isPublishing = false;
+        alert('Publication failed: ' + err.message);
+      }
     });
   }
 

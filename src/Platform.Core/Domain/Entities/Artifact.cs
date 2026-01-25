@@ -8,7 +8,8 @@ public enum ArtifactType
     Entity = 1,
     Page = 2,
     Workflow = 3,
-    Integration = 4
+    Integration = 4,
+    Connector = 5
 }
 
 public class Artifact

@@ -29,6 +29,11 @@ public class ArtifactRepository : IArtifactRepository
         return await _db.Artifacts.FindAsync(id);
     }
 
+    public async Task<Project?> GetProjectByIdAsync(Guid id)
+    {
+        return await _db.Projects.FindAsync(id);
+    }
+
     public async Task AddAsync(Artifact artifact)
     {
         _db.Artifacts.Add(artifact);

@@ -53,6 +53,16 @@ public class ProjectsController : ControllerBase
         }
 
         project.CreatedAt = DateTime.UtcNow;
+        
+        // Ensure App Level Data Isolation
+        if (string.IsNullOrEmpty(project.TargetDbName))
+        {
+            var sanitizedName = project.Name.Replace(" ", "_").ToLower();
+            project.TargetDbName = $"app_{sanitizedName}_{project.Id.ToString().Substring(0, 8)}";
+            // In a real scenario, the platform would provision this DB and set the connection string
+            project.IsolatedConnectionString = $"Host=db;Database={project.TargetDbName};Username=platform_user;Password=platform_password";
+        }
+
         _db.Projects.Add(project);
         await _db.SaveChangesAsync();
 

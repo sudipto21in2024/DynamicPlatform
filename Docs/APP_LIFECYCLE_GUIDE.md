@@ -61,9 +61,15 @@ Best for testing during design.
 This is the recommended way to run the entire stack (Platform + Database) reliably.
 
 #### **The Stack Components:**
-- **PostgreSQL**: Stores the platform metadata and the generated app data.
-- **Platform API**: The orchestration service.
+- **PostgreSQL**: Stores the platform metadata and the generated app data in isolated databases.
+- **Platform API**: The orchestration service that automatically provisions unique connection strings for each project.
 - **Platform Studio**: The web-based designer.
+
+#### **How Isolation is Enforced:**
+1.  **Unique Data Store**: Every project created in the Studio is assigned a unique `TargetDbName` (e.g., `app_inventory_8123ab`).
+2.  **Dedicated Connection Strings**: The Platform API generates a project-specific connection string during project creation.
+3.  **Build Inclusion**: When you trigger a **Build**, the platform automatically generates an `appsettings.json` file inside your build artifact containing your project's isolated connection string.
+4.  **Schema Separation**: This ensures that even if multiple apps run on the same PostgreSQL server, they cannot access each other's data as they operate on completely different databases.
 
 #### **Deployment Steps:**
 1.  **Prerequisites**: Ensure Docker and Docker Compose are installed.
