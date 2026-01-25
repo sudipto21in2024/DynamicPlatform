@@ -38,8 +38,21 @@ public class FieldMetadata
         "datetime" => "DateTime",
         "decimal" => "decimal",
         "bool" => "bool",
-        _ => "string"
+        _ => Type // If it's not a primitive, assume it's a custom Enum or Entity reference
     };
+}
+
+public class EnumMetadata
+{
+    public string Name { get; set; } = string.Empty;
+    public string Namespace { get; set; } = string.Empty;
+    public List<EnumValue> Values { get; set; } = new();
+}
+
+public class EnumValue
+{
+    public string Name { get; set; } = string.Empty;
+    public int Value { get; set; }
 }
 
 public class ValidationRule
@@ -66,4 +79,77 @@ public class RelationMetadata
     // For ManyToMany
     public string? InverseNavPropName { get; set; }
     public string? JoinTableName { get; set; }
+}
+
+public class PageMetadata
+{
+    public string Name { get; set; } = string.Empty;
+    public string Route { get; set; } = string.Empty;
+    public List<string> AllowedRoles { get; set; } = new();
+    public List<WidgetMetadata> Widgets { get; set; } = new();
+}
+
+public class WidgetMetadata
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Type { get; set; } = "StatCard"; 
+    public WidgetLayout Layout { get; set; } = new();
+    public WidgetConfig Config { get; set; } = new();
+    public WidgetDataSource DataSource { get; set; } = new();
+}
+
+public class WidgetLayout
+{
+    public GridDimension Desktop { get; set; } = new() { ColSpan = 4, RowSpan = 2 };
+    public GridDimension Tablet { get; set; } = new() { ColSpan = 6, RowSpan = 2 };
+    public GridDimension Mobile { get; set; } = new() { ColSpan = 12, RowSpan = 2 };
+    public int ZIndex { get; set; } = 1;
+}
+
+public class GridDimension
+{
+    public int ColStart { get; set; }
+    public int ColSpan { get; set; }
+    public int RowStart { get; set; }
+    public int RowSpan { get; set; }
+}
+
+public class WidgetConfig
+{
+    public string Title { get; set; } = string.Empty;
+    public string SubTitle { get; set; } = string.Empty;
+    public string Icon { get; set; } = string.Empty;
+    public string Theme { get; set; } = "primary";
+}
+
+public class WidgetDataSource
+{
+    public string EntityName { get; set; } = string.Empty;
+    public string DataType { get; set; } = "Entity"; // Entity or CustomObject
+    public string Aggregate { get; set; } = "count"; // count, sum, avg, list
+    public string DataField { get; set; } = string.Empty;
+    public string Filter { get; set; } = string.Empty;
+    public string Sort { get; set; } = string.Empty;
+    public PaginationConfig Pagination { get; set; } = new();
+    public int Limit { get; set; } = 10;
+}
+
+public class PaginationConfig
+{
+    public bool Enabled { get; set; } = false;
+    public int PageSize { get; set; } = 25;
+    public bool AllowClientOverride { get; set; } = true;
+}
+
+public class CustomObjectMetadata
+{
+    public string Name { get; set; } = string.Empty;
+    public string Namespace { get; set; } = string.Empty;
+    public List<CustomField> Fields { get; set; } = new();
+}
+
+public class CustomField
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = "string";
 }

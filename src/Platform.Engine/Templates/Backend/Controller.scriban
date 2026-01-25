@@ -20,8 +20,14 @@ public class {{ Name }}Controller : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<{{ Name }}>>> GetAll()
+    public async Task<ActionResult> Get([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
+        if (pageIndex.HasValue && pageSize.HasValue)
+        {
+            var result = await _repository.GetPagedAsync(pageIndex.Value, pageSize.Value);
+            return Ok(new { items = result.Items, totalCount = result.TotalCount });
+        }
+        
         var items = await _repository.GetAllAsync();
         return Ok(items);
     }

@@ -42,6 +42,17 @@ public class {{ Name }}Repository : IRepository<{{ Name }}>
         return await _dbSet.Where(predicate).ToListAsync();
     }
 
+    public async Task<(IEnumerable<{{ Name }}> Items, int TotalCount)> GetPagedAsync(int pageIndex, int pageSize, Expression<Func<{{ Name }}, bool>>? predicate = null)
+    {
+        IQueryable<{{ Name }}> query = _dbSet;
+        if (predicate != null) query = query.Where(predicate);
+        
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+        
+        return (items, totalCount);
+    }
+
     public async Task AddAsync({{ Name }} entity)
     {
         // 1. Evaluate Rules

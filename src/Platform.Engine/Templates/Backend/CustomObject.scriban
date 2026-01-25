@@ -1,0 +1,10 @@
+using System;
+
+namespace GeneratedApp.Models;
+
+public class {{ Name }}
+{
+    {{~ for field in Fields ~}}
+    public {{ field.Type }} {{ field.Name }} { get; set; }
+    {{~ end ~}}
+}

@@ -14,6 +14,10 @@ export class ApiService {
     return this.http.get<any[]>(`${this.apiUrl}/projects`);
   }
 
+  createProject(project: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects`, project);
+  }
+
   getEntities(projectId: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/projects/${projectId}/entities`);
   }
@@ -52,5 +56,9 @@ export class ApiService {
 
   createWorkflow(projectId: string, metadata: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/workflows`, metadata);
+  }
+
+  request(method: string, path: string, body?: any): Observable<any> {
+    return this.http.request(method, `${this.apiUrl}/${path}`, { body });
   }
 }

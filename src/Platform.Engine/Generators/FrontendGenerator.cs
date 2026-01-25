@@ -9,11 +9,13 @@ public class FrontendGenerator
 {
     private readonly Template _navTemplate;
     private readonly Template _logTemplate;
+    private readonly DashboardGenerator _dashboardGenerator;
 
     public FrontendGenerator()
     {
         _navTemplate = LoadTemplate("Navigation.scriban");
         _logTemplate = LoadTemplate("LoggingService.scriban");
+        _dashboardGenerator = new DashboardGenerator();
     }
 
     private Template LoadTemplate(string fileName)
@@ -48,5 +50,10 @@ public class FrontendGenerator
             LogLevel = level,
             IsLoggingEnabled = enabled.ToString().ToLower()
         }, member => member.Name);
+    }
+
+    public string GenerateDashboard(PageMetadata page)
+    {
+        return _dashboardGenerator.Generate(page);
     }
 }

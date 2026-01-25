@@ -1,0 +1,10 @@
+using System;
+
+namespace {{ Namespace }};
+
+public enum {{ Name }}
+{
+    {{~ for val in Values ~}}
+    {{ val.Name }} = {{ val.Value }}{{ (for.last) ? "" : "," }}
+    {{~ end ~}}
+}

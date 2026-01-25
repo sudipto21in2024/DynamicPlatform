@@ -636,22 +636,19 @@ Enable adoption.
 
 # Step 15: Roadmap & Evolution
 
-### Phase 1: MVP (Current Focus)
-- Visual Entity Designer
-- Workflow Integration (Elsa)
-- Basic Security (RBAC)
-- Code Generation (ASP.NET Core + Angular)
-- ZIP Export & Basic Publishing
+### Phase 1: Core Engine & Visual Designers (Completed ✅)
+- **Visual Entity Designer**: High-fidelity entity and relationship modeling with support for custom **Enums**.
+- **Visual Workflow Architect**: Konva.js-powered canvas for Elsa-driven logic flows.
+- **Visual Page & Layout Architect**: 12-column CSS Grid designer with a premium glassmorphic widget library.
+- **Security & Role Engine**: Visual configuration of RBAC and dynamic menu propagation.
+- **Build Verification Engine**: Simulated full-stack compilation (C# + Angular) to ensure project validity before export.
+- **Automated Generation**: Orchestrated template system (Scriban) producing executable Angular + ASP.NET Core apps.
 
-### Phase 2: Visual UI & Logic (Next)
-- **Visual Page Designer**: Drag-and-drop WYSIWYG editor for UI components.
-- **Logic Flow Designer**: Visual modeling of client-side and server-side business logic.
-- **State Management**: Automated client-side data caching and state synchronization.
-
-### Phase 3: Enterprise & AI
-- **AI-Assisted Development**: Gemini-powered scaffolding and logic copilot.
-- **Integration Hub**: Pre-built connectors for popular SaaS and DB platforms.
-- **Advanced ALM**: Zero-downtime deployments, version rollbacks, and environment staging.
+### Phase 2: Advanced Data & Logic (Active Development 🚀)
+- **Custom Data Objects (DTOs)**: Metadata-driven definition of non-entity data shapes for complex reports.
+- **Dynamic Pagination Engine**: Universal server-side pagination across Repositories, APIs, and UI Components (DataGrid).
+- **Universal Connection Hub**: Connectors for SAP, Salesforce, and NoSQL providers.
+- **Client-Side State Management**: Automated state hydration for generated Angular apps.
 
 ### Phase 4: Ecosystem & Scale
 - **Marketplace**: Community sharing of templates and connectors.

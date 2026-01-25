@@ -11,7 +11,9 @@ public enum ArtifactType
     Integration = 4,
     Connector = 5,
     SecurityConfig = 6,
-    UsersConfig = 7
+    UsersConfig = 7,
+    CustomObject = 8,
+    Enum = 9
 }
 
 public class Artifact

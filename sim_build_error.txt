@@ -1,0 +1,13 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Platform.Core -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Core\bin\Debug\net9.0\Platform.Core.dll
+  Platform.Infrastructure -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Infrastructure\bin\Debug\net9.0\Platform.Infrastructure.dll
+  Platform.Engine -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Engine\bin\Debug\net9.0\Platform.Engine.dll
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild\Data\GeneratedDbContext.cs(4,11): error CS1001: Identifier expected [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild\Entities\Customer.cs(7,11): error CS1001: Identifier expected [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild\Entities\Customer.cs(13,23): error CS1001: Identifier expected [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild_v2\Entities\Customer.cs(7,11): error CS1001: Identifier expected [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild_v5\Entities\Order.cs(27,21): error CS1519: Invalid token 'true' in a member declaration [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild_v5\Entities\Order.cs(27,31): error CS1519: Invalid token ';' in a member declaration [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild_v5\Entities\Order.cs(27,36): error CS1519: Invalid token ';' in a member declaration [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\DemoBuild_v5\Entities\Order.cs(27,38): error CS1519: Invalid token '}' in a member declaration [C:\Sudipto\Antigravity\DynamicPlatform\ClinicSimulator.csproj]

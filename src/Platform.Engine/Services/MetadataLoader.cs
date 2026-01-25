@@ -93,4 +93,55 @@ public class MetadataLoader
             DefinitionJson = artifact.Content
         };
     }
+
+    public PageMetadata? LoadPageMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.Page)
+        {
+            throw new ArgumentException("Artifact is not a Page type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<PageMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public CustomObjectMetadata? LoadCustomObjectMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.CustomObject)
+        {
+            throw new ArgumentException("Artifact is not a CustomObject type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<CustomObjectMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public EnumMetadata? LoadEnumMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.Enum)
+        {
+            throw new ArgumentException("Artifact is not an Enum type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<EnumMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

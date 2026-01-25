@@ -1,133 +1,242 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api';
 import { FormsModule } from '@angular/forms';
+import Konva from 'konva';
 
 @Component({
-    selector: 'app-workflow-designer',
-    standalone: true,
-    imports: [CommonModule, RouterLink, FormsModule],
-    template: `
+   selector: 'app-workflow-designer',
+   standalone: true,
+   imports: [CommonModule, RouterLink, FormsModule],
+   template: `
     <div class="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-200">
       <!-- Toolbar -->
-      <div class="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm z-20">
-        <div class="flex items-center space-x-4">
-          <button [routerLink]="['/projects', projectId, 'designer']" class="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all">
-            <span class="material-icons-outlined">arrow_back</span>
+      <div class="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900/80 backdrop-blur-xl z-20 shadow-2xl">
+        <div class="flex items-center space-x-6">
+          <button [routerLink]="['/projects', projectId, 'designer']" class="group p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all">
+            <span class="material-icons-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
           </button>
-          <div class="flex items-center space-x-2">
-            <span class="material-icons-outlined text-green-400">account_tree</span>
-            <h2 class="text-sm font-semibold text-white">Workflow Automation (Elsa 3.x)</h2>
+          <div class="flex items-center space-x-3">
+             <div class="p-2 bg-green-500/10 rounded-lg">
+                <span class="material-icons-outlined text-green-400 text-lg">account_tree</span>
+             </div>
+             <div>
+                <h2 class="text-sm font-semibold text-white">Workflow Designer</h2>
+                <div class="text-[10px] text-slate-500 font-mono">Elsa v3 Runtime</div>
+             </div>
           </div>
         </div>
+
         <div class="flex items-center space-x-3">
-           <button (click)="createWorkflow()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg active:scale-95">
-             Create Workflow
+           <button class="flex items-center space-x-2 text-sm text-slate-400 hover:text-white px-4 py-2 rounded-lg transition-colors hover:bg-white/5">
+             <span class="material-icons-outlined text-lg">save</span>
+             <span>Save Flow</span>
+           </button>
+           <div class="w-px h-6 bg-white/10 mx-2"></div>
+           <button (click)="addNode('http')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-900/20 active:scale-95">
+             Add Trigger
+           </button>
+           <button (click)="runSimulation()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2">
+             <span class="material-icons-outlined text-sm">play_arrow</span>
+             <span>Run Test</span>
            </button>
         </div>
       </div>
 
-      <div class="flex-1 p-8 overflow-y-auto">
-        <div class="max-w-6xl mx-auto space-y-8">
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div *ngFor="let wf of workflows" class="bg-slate-900/50 border border-white/5 p-6 rounded-2xl hover:border-green-500/30 transition-all group">
-               <div class="flex justify-between items-start mb-4">
-                  <div class="p-3 bg-green-500/10 rounded-xl text-green-400">
-                     <span class="material-icons-outlined">route</span>
-                  </div>
-                  <span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded uppercase">Elsa v3</span>
-               </div>
-               <h3 class="text-lg font-bold mb-1">{{ wf.name }}</h3>
-               <p class="text-slate-500 text-xs mb-6 line-clamp-2">Automated business process with logic triggers and actions.</p>
-               
-               <div class="flex items-center space-x-2 pt-4 border-t border-white/5">
-                  <button class="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1 bg-blue-400/10 rounded">Open Designer</button>
-                  <button class="text-xs text-slate-500 hover:text-white font-medium px-2 py-1">View History</button>
-               </div>
-            </div>
+      <div class="flex-1 flex overflow-hidden relative">
+        <!-- Palette Sidebar -->
+        <aside class="w-64 bg-slate-900/50 backdrop-blur-md border-r border-white/5 p-6 flex flex-col space-y-8 z-10">
+           <div class="space-y-4">
+              <label class="text-[10px] uppercase tracking-widest font-bold text-slate-500">Activities</label>
+              <nav class="space-y-1">
+                 <button (click)="addNode('db')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-blue-400 transition-all group">
+                    <span class="material-icons-outlined text-lg">storage</span>
+                    <span class="text-sm font-medium">Database</span>
+                 </button>
+                 <button (click)="addNode('logic')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-amber-400 transition-all">
+                    <span class="material-icons-outlined text-lg">psychology</span>
+                    <span class="text-sm font-medium">Logic</span>
+                 </button>
+                 <button (click)="addNode('http')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-green-400 transition-all">
+                    <span class="material-icons-outlined text-lg">public</span>
+                    <span class="text-sm font-medium">HTTP</span>
+                 </button>
+                 <button (click)="addNode('notify')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-purple-400 transition-all">
+                    <span class="material-icons-outlined text-lg">notifications</span>
+                    <span class="text-sm font-medium">Notifications</span>
+                 </button>
+              </nav>
+           </div>
 
-            <!-- Empty State / Placeholder -->
-            <div *ngIf="workflows.length === 0" class="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl">
-               <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
-                  <span class="material-icons-outlined text-4xl text-slate-700">alt_route</span>
-               </div>
-               <h4 class="text-lg font-bold">No workflows defined yet</h4>
-               <p class="text-slate-500 text-sm max-w-xs text-center">Workflows allow you to automate business logic across entities and connectors.</p>
-            </div>
-          </div>
+           <div class="mt-auto p-4 bg-blue-600/5 border border-blue-500/10 rounded-2xl">
+              <p class="text-[11px] text-slate-500 leading-relaxed italic">
+                 Drag and drop nodes to define the business process for your clinic app.
+              </p>
+           </div>
+        </aside>
 
-          <div class="bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-white/5 p-8 rounded-3xl">
-             <div class="flex items-center space-x-3 mb-4">
-                <span class="material-icons-outlined text-indigo-400">info</span>
-                <h4 class="font-bold underline">Elsa 3.x Integration Details</h4>
-             </div>
-             <p class="text-sm text-slate-400 leading-relaxed mb-6">
-               The platform is pre-wired with **Elsa Workflows 3.1**. Every project now supports:
-             </p>
-             <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-500">
-                <li class="flex items-center space-x-2">
-                   <span class="material-icons-outlined text-green-500 text-sm">check_circle</span>
-                   <span>Native Entity Triggers (OnCreate, OnUpdate)</span>
-                </li>
-                <li class="flex items-center space-x-2">
-                   <span class="material-icons-outlined text-green-500 text-sm">check_circle</span>
-                   <span>Custom Connector Invocation from Workflow Nodes</span>
-                </li>
-                <li class="flex items-center space-x-2">
-                   <span class="material-icons-outlined text-green-500 text-sm">check_circle</span>
-                   <span>HTTP Incoming Webhooks per Project</span>
-                </li>
-                <li class="flex items-center space-x-2">
-                   <span class="material-icons-outlined text-green-500 text-sm">check_circle</span>
-                   <span>Multi-Tenant Persistence via PostgreSQL</span>
-                </li>
-             </ul>
-          </div>
-
+        <!-- Canvas Area -->
+        <div #canvasContainer class="flex-1 bg-[#0B1120] relative cursor-crosshair overflow-hidden">
+           <div id="workflow-holder" class="absolute inset-0"></div>
+           
+           <!-- Canvas Controls -->
+           <div class="absolute bottom-6 right-6 flex space-x-2">
+              <button class="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-xl">
+                 <span class="material-icons-outlined">zoom_in</span>
+              </button>
+              <button class="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-xl">
+                 <span class="material-icons-outlined">zoom_out</span>
+              </button>
+           </div>
         </div>
       </div>
     </div>
   `,
-    styles: []
+   styles: [`
+    #workflow-holder {
+      background-image: 
+        linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+  `]
 })
-export class WorkflowDesigner implements OnInit {
-    projectId: string | null = null;
-    workflows: any[] = [];
+export class WorkflowDesigner implements AfterViewInit, OnDestroy {
+   @ViewChild('canvasContainer') canvasContainer!: ElementRef;
 
-    constructor(
-        private readonly route: ActivatedRoute,
-        private readonly api: ApiService
-    ) {
-        this.projectId = this.route.snapshot.paramMap.get('projectId');
-    }
+   projectId: string | null = null;
+   stage!: Konva.Stage;
+   layer!: Konva.Layer;
+   nodes: any[] = [];
+   resizeHandler = this.onResize.bind(this);
 
-    ngOnInit() {
-        if (this.projectId) {
-            this.loadWorkflows();
-        }
-    }
+   constructor(
+      private readonly route: ActivatedRoute,
+      private readonly api: ApiService
+   ) {
+      this.projectId = this.route.snapshot.paramMap.get('projectId');
+   }
 
-    loadWorkflows() {
-        this.api.getWorkflows(this.projectId!).subscribe({
-            next: (data) => this.workflows = data
-        });
-    }
+   ngAfterViewInit() {
+      setTimeout(() => {
+         if (!this.canvasContainer) return;
+         const container = this.canvasContainer.nativeElement;
 
-    createWorkflow() {
-        if (!this.projectId) return;
-        const name = prompt('Workflow Name', 'New Order Process');
-        if (!name) return;
+         this.stage = new Konva.Stage({
+            container: 'workflow-holder',
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            draggable: true
+         });
 
-        const metadata = {
-            name: name,
-            nodes: [],
-            connections: []
-        };
+         this.layer = new Konva.Layer();
+         this.stage.add(this.layer);
 
-        this.api.createWorkflow(this.projectId, metadata).subscribe({
-            next: () => this.loadWorkflows()
-        });
-    }
+         globalThis.addEventListener('resize', this.resizeHandler);
+
+         // Seed initial overlap check nodes to match the mockup
+         this.seedClinicWorkflow();
+      }, 100);
+   }
+
+   onResize() {
+      if (!this.stage || !this.canvasContainer) return;
+      this.stage.width(this.canvasContainer.nativeElement.offsetWidth);
+      this.stage.height(this.canvasContainer.nativeElement.offsetHeight);
+   }
+
+   seedClinicWorkflow() {
+      this.addNodeAt('http', 150, 100, 'HTTP Request: /validate-appointment', '#3b82f6');
+      this.addNodeAt('logic', 150, 250, 'JS: Query Appointment Overlap', '#f59e0b');
+      this.addNodeAt('logic', 450, 250, 'Is Overlap?', '#6366f1', true); // Diamond
+      this.addNodeAt('notify', 700, 150, '409 Conflict', '#ef4444');
+      this.addNodeAt('notify', 700, 350, '200 OK', '#22c55e');
+
+      this.drawConnections();
+   }
+
+   addNode(type: string) {
+      const x = 100 + Math.random() * 200;
+      const y = 100 + Math.random() * 200;
+      this.addNodeAt(type, x, y, `New ${type} node`, '#94a3b8');
+   }
+
+   addNodeAt(type: string, x: number, y: number, label: string, color: string, isDiamond = false) {
+      const group = new Konva.Group({ x, y, draggable: true });
+
+      if (isDiamond) {
+         const poly = new Konva.RegularPolygon({
+            sides: 4,
+            radius: 60,
+            fill: '#0f172a',
+            stroke: color,
+            strokeWidth: 2,
+            shadowBlur: 10,
+            shadowColor: color,
+            shadowOpacity: 0.3,
+            rotation: 0
+         });
+         group.add(poly);
+      } else {
+         const rect = new Konva.Rect({
+            width: 220,
+            height: 60,
+            fill: '#1e293b',
+            stroke: color,
+            strokeWidth: 2,
+            cornerRadius: 12,
+            shadowBlur: 15,
+            shadowColor: 'black',
+            shadowOpacity: 0.4
+         });
+         group.add(rect);
+      }
+
+      const text = new Konva.Text({
+         text: label,
+         fontSize: 12,
+         fontFamily: 'Inter, sans-serif',
+         fill: 'white',
+         width: isDiamond ? 100 : 220,
+         padding: isDiamond ? 0 : 20,
+         align: 'center',
+         y: isDiamond ? -10 : 0,
+         x: isDiamond ? -50 : 0
+      });
+
+      group.add(text);
+      this.layer.add(group);
+      this.layer.batchDraw();
+   }
+
+   drawConnections() {
+      // Simplified static lines for visualization of the mockup
+      this.drawLine(370, 130, 270, 250); // HTTP to JS
+      this.drawLine(370, 280, 400, 280); // JS to Diamond
+      this.drawLine(510, 250, 700, 180); // Diamond to Conflict
+      this.drawLine(510, 310, 700, 380); // Diamond to OK
+   }
+
+   drawLine(x1: number, y1: number, x2: number, y2: number) {
+      const line = new Konva.Arrow({
+         points: [x1, y1, x2, y2],
+         pointerLength: 10,
+         pointerWidth: 10,
+         fill: '#ffffff33',
+         stroke: '#ffffff33',
+         strokeWidth: 2,
+         tension: 0.5
+      });
+      this.layer.add(line);
+   }
+
+   runSimulation() {
+      alert('Starting Workflow Simulation for Clinic Appointment...');
+   }
+
+   ngOnDestroy() {
+      globalThis.removeEventListener('resize', this.resizeHandler);
+      if (this.stage) this.stage.destroy();
+   }
 }
