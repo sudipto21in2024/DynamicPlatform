@@ -634,15 +634,34 @@ Enable adoption.
 
 ---
 
-## Step 15: Roadmap & Evolution
+# Step 15: Roadmap & Evolution
 
-### Objective
-Plan long-term growth.
+### Phase 1: MVP (Current Focus)
+- Visual Entity Designer
+- Workflow Integration (Elsa)
+- Basic Security (RBAC)
+- Code Generation (ASP.NET Core + Angular)
+- ZIP Export & Basic Publishing
 
-### Phases
-- MVP
-- Enterprise
-- Marketplace
+### Phase 2: Visual UI & Logic (Next)
+- **Visual Page Designer**: Drag-and-drop WYSIWYG editor for UI components.
+- **Logic Flow Designer**: Visual modeling of client-side and server-side business logic.
+- **State Management**: Automated client-side data caching and state synchronization.
+
+### Phase 3: Enterprise & AI
+- **AI-Assisted Development**: Gemini-powered scaffolding and logic copilot.
+- **Integration Hub**: Pre-built connectors for popular SaaS and DB platforms.
+- **Advanced ALM**: Zero-downtime deployments, version rollbacks, and environment staging.
+
+### Phase 4: Ecosystem & Scale
+- **Marketplace**: Community sharing of templates and connectors.
+- **Multi-Experience**: Native mobile app generation (Flutter/React Native).
+- **Multi-Tenancy**: SaaS-ready isolation for global scale.
+
+---
+
+# Appendix: Market Analysis & Enhancement Suggestions
+For a detailed analysis of market competitors and specific feature enhancement suggestions, refer to [MARKET_ANALYSIS_ENHANCEMENT_SUGGESTIONS.md](./MARKET_ANALYSIS_ENHANCEMENT_SUGGESTIONS.md).
 
 ---
 
