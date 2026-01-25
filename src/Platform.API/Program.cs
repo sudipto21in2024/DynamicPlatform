@@ -38,6 +38,8 @@ builder.Services.AddScoped<RepositoryGenerator>();
 builder.Services.AddScoped<ControllerGenerator>();
 builder.Services.AddScoped<ProjectGenerator>();
 builder.Services.AddScoped<ConnectorGenerator>();
+builder.Services.AddScoped<SecurityGenerator>();
+builder.Services.AddScoped<FrontendGenerator>();
 builder.Services.AddScoped<AngularComponentGenerator>();
 builder.Services.AddScoped<Platform.Engine.Services.MetadataLoader>();
 builder.Services.AddScoped<Platform.Engine.Services.RelationNormalizationService>();

@@ -1,14 +1,14 @@
 import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import Konva from 'konva';
 import { ApiService } from '../../services/api';
 
 @Component({
   selector: 'app-entity-designer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-200">
       <!-- Toolbar -->
@@ -27,6 +27,10 @@ import { ApiService } from '../../services/api';
           <button (click)="addEntity()" class="group flex items-center space-x-2 text-sm bg-white/5 hover:bg-white/10 border border-white/5 active:bg-blue-600 active:border-blue-500 px-4 py-2 rounded-lg transition-all">
             <span class="material-icons-outlined text-blue-400 group-hover:text-blue-300 text-lg">add_box</span>
             <span class="font-medium">New Entity</span>
+          </button>
+          <button [routerLink]="['/projects', projectId, 'security']" class="group flex items-center space-x-2 text-sm bg-white/5 hover:bg-white/10 border border-white/5 px-4 py-2 rounded-lg transition-all">
+            <span class="material-icons-outlined text-purple-400 group-hover:text-purple-300 text-lg">admin_panel_settings</span>
+            <span class="font-medium">Security</span>
           </button>
         </div>
         <div class="flex items-center space-x-3">

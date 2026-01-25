@@ -9,7 +9,9 @@ public enum ArtifactType
     Page = 2,
     Workflow = 3,
     Integration = 4,
-    Connector = 5
+    Connector = 5,
+    SecurityConfig = 6,
+    UsersConfig = 7
 }
 
 public class Artifact

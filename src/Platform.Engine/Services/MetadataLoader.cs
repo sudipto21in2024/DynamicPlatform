@@ -25,9 +25,10 @@ public class MetadataLoader
         }
         catch (JsonException)
         {
-            // Logging or error handling
             return null;
         }
+    }
+
     public ConnectorMetadata? LoadConnectorMetadata(Artifact artifact)
     {
         if (artifact.Type != ArtifactType.Connector)
@@ -38,6 +39,40 @@ public class MetadataLoader
         try
         {
             return JsonSerializer.Deserialize<ConnectorMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public SecurityMetadata? LoadSecurityMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.SecurityConfig)
+        {
+            throw new ArgumentException("Artifact is not a SecurityConfig type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<SecurityMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public AppUserMetadata? LoadAppUserMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.UsersConfig)
+        {
+            throw new ArgumentException("Artifact is not a UsersConfig type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<AppUserMetadata>(artifact.Content, _options);
         }
         catch (JsonException)
         {

@@ -24,6 +24,8 @@ public class BuildController : ControllerBase
     private readonly ControllerGenerator _controllerGen;
     private readonly ProjectGenerator _projectGen;
     private readonly ConnectorGenerator _connectorGen;
+    private readonly SecurityGenerator _securityGen;
+    private readonly FrontendGenerator _frontendLayoutGen;
     private readonly AngularComponentGenerator _frontendGen;
     private readonly MetadataLoader _loader;
     private readonly RelationNormalizationService _relationService;
@@ -36,6 +38,8 @@ public class BuildController : ControllerBase
         ControllerGenerator controllerGen,
         ProjectGenerator projectGen,
         ConnectorGenerator connectorGen,
+        SecurityGenerator securityGen,
+        FrontendGenerator frontendLayoutGen,
         AngularComponentGenerator frontendGen,
         MetadataLoader loader,
         RelationNormalizationService relationService)
@@ -47,6 +51,8 @@ public class BuildController : ControllerBase
         _controllerGen = controllerGen;
         _projectGen = projectGen;
         _connectorGen = connectorGen;
+        _securityGen = securityGen;
+        _frontendLayoutGen = frontendLayoutGen;
         _frontendGen = frontendGen;
         _loader = loader;
         _relationService = relationService;
@@ -58,6 +64,8 @@ public class BuildController : ControllerBase
         var artifacts = await _repo.GetByProjectIdAsync(projectId);
         var initialEntities = new List<EntityMetadata>();
         var connectors = new List<ConnectorMetadata>();
+        SecurityMetadata? security = null;
+        AppUserMetadata? users = null;
         var project = await _repo.GetProjectByIdAsync(projectId);
         var baseNamespace = project?.Name.Replace(" ", "") ?? "GeneratedApp";
 
@@ -81,6 +89,14 @@ public class BuildController : ControllerBase
                     connMetadata.Namespace = connMetadata.Namespace ?? $"{baseNamespace}.Connectors";
                     connectors.Add(connMetadata);
                 }
+            }
+            else if (artifact.Type == ArtifactType.SecurityConfig)
+            {
+                security = _loader.LoadSecurityMetadata(artifact);
+            }
+            else if (artifact.Type == ArtifactType.UsersConfig)
+            {
+                users = _loader.LoadAppUserMetadata(artifact);
             }
         }
 
@@ -129,6 +145,10 @@ public class BuildController : ControllerBase
                 AddFileToZip(archive, $"Frontend/src/app/pages/{entity.Name.ToLower()}/{entity.Name.ToLower()}.component.ts", frontendCode);
             }
 
+            // 7b. Generate Layout/Navigation (Reflecting Security Features)
+            var navCode = _frontendLayoutGen.GenerateNavigation(baseNamespace, security ?? new SecurityMetadata());
+            AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.ts", navCode);
+
             // 8. Generate DbContext
             if (entities.Any())
             {
@@ -175,6 +195,13 @@ ENTRYPOINT [""dotnet"", ""{apiNamespace}.dll""]";
 
                 var azureReadme = _projectGen.GenerateAzureReadme();
                 AddFileToZip(archive, "README_AZURE.md", azureReadme);
+            }
+
+            // 12. Add Security Configuration (XML)
+            if (security != null)
+            {
+                var securityXml = _securityGen.GenerateXml(security, users ?? new AppUserMetadata());
+                AddFileToZip(archive, $"{apiNamespace}/security.xml", securityXml);
             }
         }
 

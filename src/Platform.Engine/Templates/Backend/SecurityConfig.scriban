@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SecurityConfiguration>
+    <Roles>
+        {{~ for role in Roles ~}}
+        <Role Name="{{role.Name}}">
+            <Permissions>
+                {{~ for perm in role.Permissions ~}}
+                <Permission Entity="{{perm.EntityName}}" Read="{{perm.CanRead}}" Create="{{perm.CanCreate}}" Update="{{perm.CanUpdate}}" Delete="{{perm.CanDelete}}" />
+                {{~ end ~}}
+            </Permissions>
+        </Role>
+        {{~ end ~}}
+    </Roles>
+    <Menus>
+        {{~ for menu in Menus ~}}
+        <MenuItem Label="{{menu.Label}}" Icon="{{menu.Icon}}" Route="{{menu.Route}}" Roles="{{menu.AllowedRoles | array.join ","}}" />
+        {{~ end ~}}
+    </Menus>
+    <Users>
+        {{~ for user in Users ~}}
+        <User Id="{{user.Id}}" Username="{{user.Username}}" Email="{{user.Email}}" Password="{{user.Password}}" Roles="{{user.AssignedRoles | array.join ","}}" />
+        {{~ end ~}}
+    </Users>
+</SecurityConfiguration>

@@ -29,4 +29,20 @@ export class ApiService {
   publishProject(projectId: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/projects/${projectId}/publish`, {});
   }
+
+  getSecurityConfig(projectId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/projects/${projectId}/security`);
+  }
+
+  saveSecurityConfig(projectId: string, config: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/security`, config);
+  }
+
+  getUsersConfig(projectId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/projects/${projectId}/users`);
+  }
+
+  saveUsersConfig(projectId: string, config: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/users`, config);
+  }
 }

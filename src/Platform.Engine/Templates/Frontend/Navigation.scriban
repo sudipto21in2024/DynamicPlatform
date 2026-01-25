@@ -1,0 +1,60 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-nav',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
+    <nav class="bg-slate-900 text-white h-16 flex items-center px-8 border-b border-white/10 shadow-lg">
+      <div class="flex items-center space-x-8">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span class="material-icons-outlined text-sm">rocket_launch</span>
+          </div>
+          <span class="font-bold tracking-tight text-lg">{{ProjectName}}</span>
+        </div>
+        
+        <div class="h-6 w-px bg-white/10"></div>
+
+        <div class="flex items-center space-x-1">
+          {{~ for menu in Menus ~}}
+          <a [routerLink]="['{{menu.Route}}']" 
+             *ngIf="canAccess(['{{menu.AllowedRoles | array.join "','"}}'])"
+             class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center space-x-2">
+            <span class="material-icons-outlined text-lg">{{menu.Icon}}</span>
+            <span>{{menu.Label}}</span>
+          </a>
+          {{~ end ~}}
+        </div>
+      </div>
+
+      <div class="ml-auto flex items-center space-x-4">
+        <div class="text-right">
+          <div class="text-xs font-bold text-white">Guest User</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-widest">Administrator</div>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-0.5">
+           <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+              <span class="material-icons-outlined text-slate-300">person</span>
+           </div>
+        </div>
+      </div>
+    </nav>
+  `,
+  styles: []
+})
+export class NavigationComponent implements OnInit {
+  // This would be replaced with actual Auth Logic in the generated app
+  userRoles: string[] = ['Administrator']; 
+
+  constructor() {}
+
+  ngOnInit() {}
+
+  canAccess(allowedRoles: string[]): boolean {
+    if (!allowedRoles || allowedRoles.length === 0 || allowedRoles[0] === '') return true;
+    return allowedRoles.some(role => this.userRoles.includes(role));
+  }
+}
