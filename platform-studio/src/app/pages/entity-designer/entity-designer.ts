@@ -32,6 +32,10 @@ import { ApiService } from '../../services/api';
             <span class="material-icons-outlined text-purple-400 group-hover:text-purple-300 text-lg">admin_panel_settings</span>
             <span class="font-medium">Security</span>
           </button>
+          <button [routerLink]="['/projects', projectId, 'workflows']" class="group flex items-center space-x-2 text-sm bg-white/5 hover:bg-white/10 border border-white/5 px-4 py-2 rounded-lg transition-all">
+            <span class="material-icons-outlined text-green-400 group-hover:text-green-300 text-lg">account_tree</span>
+            <span class="font-medium">Workflows</span>
+          </button>
         </div>
         <div class="flex items-center space-x-3">
           <button (click)="save()" class="flex items-center space-x-2 text-sm text-slate-400 hover:text-white px-4 py-2 rounded-lg transition-colors hover:bg-white/5">

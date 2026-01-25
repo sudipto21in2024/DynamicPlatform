@@ -79,4 +79,18 @@ public class MetadataLoader
             return null;
         }
     }
+
+    public WorkflowMetadata? LoadWorkflowMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.Workflow)
+        {
+            throw new ArgumentException("Artifact is not a Workflow type", nameof(artifact));
+        }
+
+        return new WorkflowMetadata
+        {
+            Name = artifact.Name,
+            DefinitionJson = artifact.Content
+        };
+    }
 }

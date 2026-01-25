@@ -15,6 +15,16 @@
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    
+    {{~ if HasWorkflows ~}}
+    <PackageReference Include="Elsa" Version="3.2.1" />
+    <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.2.1" />
+    <PackageReference Include="Elsa.EntityFrameworkCore.PostgreSQL" Version="3.2.1" />
+    <PackageReference Include="Elsa.Http" Version="3.2.1" />
+    <PackageReference Include="Elsa.Workflows.Api" Version="3.2.1" />
+    <PackageReference Include="Elsa.Workflows.Runtime" Version="3.2.1" />
+    {{~ end ~}}
+
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

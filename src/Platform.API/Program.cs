@@ -3,6 +3,10 @@ using Platform.Core.Interfaces;
 using Platform.Infrastructure.Data;
 using Platform.Infrastructure.Data.Repositories;
 using Platform.Engine.Generators;
+using Elsa.Extensions;
+using Elsa.EntityFrameworkCore.Modules.Management;
+using Elsa.EntityFrameworkCore.Modules.Runtime;
+using Elsa.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +51,28 @@ builder.Services.AddScoped<Platform.Engine.Services.RelationNormalizationService
 // AI Services
 builder.Services.AddHttpClient<Platform.API.Services.GeminiService>();
 
+// Elsa Workflows 3.0 Integration
+builder.Services.AddElsa(elsa =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+    
+    // Configure Management with EF Core & PostgreSQL
+    elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UsePostgreSql(connectionString)));
+    
+    // Configure Runtime with EF Core & PostgreSQL
+    elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UsePostgreSql(connectionString)));
+    
+    // Enable API
+    elsa.UseWorkflowsApi();
+    
+    // Enable HTTP activities (Incoming webhooks etc)
+    elsa.UseHttp(http => http.ConfigureHttpOptions = options => options.BasePath = "/workflows");
+    
+    // Enable JavaScript and Liquid expressions
+    elsa.UseJavaScript();
+    elsa.UseLiquid();
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -61,6 +87,10 @@ app.UseHttpsRedirection();
 app.UseCors("AllowStudio");
 
 app.UseAuthorization();
+
+// Elsa Middleware
+app.UseWorkflowsApi();
+app.UseWorkflows();
 
 app.MapControllers();
 

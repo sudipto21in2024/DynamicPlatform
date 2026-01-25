@@ -2,6 +2,12 @@ using {{Namespace}}.Data;
 using {{Namespace}}.Repositories;
 using {{Namespace}}.Connectors;
 using Serilog;
+{{~ if Workflows && Workflows.size > 0 ~}}
+using Elsa.Extensions;
+using Elsa.EntityFrameworkCore.Modules.Management;
+using Elsa.EntityFrameworkCore.Modules.Runtime;
+using Elsa.EntityFrameworkCore.PostgreSQL;
+{{~ end ~}}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +51,20 @@ builder.Services.AddScoped<{{entity.Name}}Repository>();
 builder.Services.AddScoped<{{connector.Name}}Connector>();
 {{~ end ~}}
 
+{{~ if Workflows && Workflows.size > 0 ~}}
+// Elsa Workflows Integration
+builder.Services.AddElsa(elsa =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+    elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UsePostgreSql(connectionString)));
+    elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UsePostgreSql(connectionString)));
+    elsa.UseWorkflowsApi();
+    elsa.UseHttp(http => http.ConfigureHttpOptions = options => options.BasePath = "/workflows");
+    elsa.UseJavaScript();
+    elsa.UseLiquid();
+});
+{{~ end ~}}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -56,6 +76,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 app.UseAuthorization();
+
+{{~ if Workflows && Workflows.size > 0 ~}}
+// Elsa Middleware
+app.UseWorkflowsApi();
+app.UseWorkflows();
+{{~ end ~}}
+
 app.MapControllers();
 
 // Database initialization

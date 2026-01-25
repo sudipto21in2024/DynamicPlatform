@@ -45,4 +45,12 @@ export class ApiService {
   saveUsersConfig(projectId: string, config: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/users`, config);
   }
+
+  getWorkflows(projectId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/projects/${projectId}/workflows`);
+  }
+
+  createWorkflow(projectId: string, metadata: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/workflows`, metadata);
+  }
 }

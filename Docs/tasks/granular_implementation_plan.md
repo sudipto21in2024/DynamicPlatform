@@ -102,7 +102,7 @@ This document breaks down the Low-Code Platform construction into small, verifia
 
 *   [x] **Rules Engine**: Added Backend Model, Generator support, and Frontend UI (Validation Rules).
 *   [x] **Integrations**: Added `IIntegrationConnector` interfaces in Core.
-*   [ ] **Workflow**: Integrate `Elsa`.
+*   [x] **Workflow**: Integrate `Elsa`.
 *   [x] **AI**: Add `GeminiService` to API and `AiController`.
 
 ---

@@ -64,6 +64,7 @@ public class BuildController : ControllerBase
         var artifacts = await _repo.GetByProjectIdAsync(projectId);
         var initialEntities = new List<EntityMetadata>();
         var connectors = new List<ConnectorMetadata>();
+        var workflows = new List<WorkflowMetadata>();
         SecurityMetadata? security = null;
         AppUserMetadata? users = null;
         var project = await _repo.GetProjectByIdAsync(projectId);
@@ -98,6 +99,11 @@ public class BuildController : ControllerBase
             {
                 users = _loader.LoadAppUserMetadata(artifact);
             }
+            else if (artifact.Type == ArtifactType.Workflow)
+            {
+                var wfMetadata = _loader.LoadWorkflowMetadata(artifact);
+                if (wfMetadata != null) workflows.Add(wfMetadata);
+            }
         }
 
         // 2. Normalize Relations (Handle M:N by creating middle entities)
@@ -110,12 +116,17 @@ public class BuildController : ControllerBase
             var apiNamespace = $"{baseNamespace}.API";
             
             // .csproj
-            var csprojCode = _projectGen.GenerateCsproj(apiNamespace);
+            var csprojCode = _projectGen.GenerateCsproj(apiNamespace, workflows.Any());
             AddFileToZip(archive, $"{apiNamespace}/{apiNamespace}.csproj", csprojCode);
 
             // Program.cs (Pass both entities and connectors for DI registration)
-            var programCode = _projectGen.GenerateProgram(apiNamespace, entities, connectors);
+            var programCode = _projectGen.GenerateProgram(apiNamespace, entities, connectors, workflows);
             AddFileToZip(archive, $"{apiNamespace}/Program.cs", programCode);
+
+            foreach (var workflow in workflows)
+            {
+                AddFileToZip(archive, $"{apiNamespace}/Workflows/{workflow.Name}.json", workflow.DefinitionJson);
+            }
 
             foreach (var connector in connectors)
             {

@@ -9,6 +9,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Elsa" Version="3.2.1" />
+    <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.2.1" />
+    <PackageReference Include="Elsa.EntityFrameworkCore.PostgreSQL" Version="3.2.1" />
+    <PackageReference Include="Elsa.Http" Version="3.2.1" />
+    <PackageReference Include="Elsa.Workflows.Api" Version="3.2.1" />
+    <PackageReference Include="Elsa.Workflows.Runtime" Version="3.2.1" />
   </ItemGroup>
 
   <ItemGroup>
