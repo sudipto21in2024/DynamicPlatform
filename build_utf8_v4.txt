@@ -1,0 +1,17 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Platform.Core -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Core\bin\Debug\net9.0\Platform.Core.dll
+  Platform.Infrastructure -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Infrastructure\bin\Debug\net9.0\Platform.Infrastructure.dll
+  Platform.Engine -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Engine\bin\Debug\net9.0\Platform.Engine.dll
+C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Services\GeminiService.cs(20,19): warning CS8601: Possible null reference assignment. [C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Platform.API.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Services\GeminiService.cs(17,12): warning CS8618: Non-nullable field '_apiKey' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Platform.API.csproj]
+  Platform.API -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\bin\Debug\net9.0\Platform.API.dll
+
+Build succeeded.
+
+C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Services\GeminiService.cs(20,19): warning CS8601: Possible null reference assignment. [C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Platform.API.csproj]
+C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Services\GeminiService.cs(17,12): warning CS8618: Non-nullable field '_apiKey' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Platform.API.csproj]
+    2 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.67

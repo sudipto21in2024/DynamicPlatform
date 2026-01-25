@@ -1,0 +1,14 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Platform.Core -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Core\bin\Debug\net9.0\Platform.Core.dll
+  Platform.Infrastructure -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Infrastructure\bin\Debug\net9.0\Platform.Infrastructure.dll
+  Platform.Engine -> C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.Engine\bin\Debug\net9.0\Platform.Engine.dll
+C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Program.cs(8,32): error CS0234: The type or namespace name 'PostgreSQL' does not exist in the namespace 'Elsa.EntityFrameworkCore' (are you missing an assembly reference?) [C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Platform.API.csproj]
+
+Build FAILED.
+
+C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Program.cs(8,32): error CS0234: The type or namespace name 'PostgreSQL' does not exist in the namespace 'Elsa.EntityFrameworkCore' (are you missing an assembly reference?) [C:\Sudipto\Antigravity\DynamicPlatform\src\Platform.API\Platform.API.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:01.02

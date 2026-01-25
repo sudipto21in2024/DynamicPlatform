@@ -4,9 +4,10 @@ using Platform.Infrastructure.Data;
 using Platform.Infrastructure.Data.Repositories;
 using Platform.Engine.Generators;
 using Elsa.Extensions;
+using Elsa.EntityFrameworkCore.Extensions;
 using Elsa.EntityFrameworkCore.Modules.Management;
 using Elsa.EntityFrameworkCore.Modules.Runtime;
-using Elsa.EntityFrameworkCore.PostgreSQL;
+using Elsa.EntityFrameworkCore.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
