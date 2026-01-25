@@ -1,0 +1,44 @@
+import { Injectable } from '@angular/core';
+
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class LoggingService {
+  // Configured in the generated build process
+  private readonly currentLogLevel: LogLevel = LogLevel.{{LogLevel}};
+  private readonly isLoggingEnabled: boolean = {{IsLoggingEnabled}};
+
+  log(message: string, level: LogLevel = LogLevel.INFO, data?: any) {
+    if (!this.isLoggingEnabled || level < this.currentLogLevel) return;
+
+    const timestamp = new Date().toISOString();
+    const prefix = `[${timestamp}] [${LogLevel[level]}]`;
+
+    switch (level) {
+      case LogLevel.DEBUG:
+        console.debug(prefix, message, data || '');
+        break;
+      case LogLevel.INFO:
+        console.info(prefix, message, data || '');
+        break;
+      case LogLevel.WARN:
+        console.warn(prefix, message, data || '');
+        break;
+      case LogLevel.ERROR:
+        console.error(prefix, message, data || '');
+        break;
+    }
+  }
+
+  debug(message: string, data?: any) { this.log(message, LogLevel.DEBUG, data); }
+  info(message: string, data?: any) { this.log(message, LogLevel.INFO, data); }
+  warn(message: string, data?: any) { this.log(message, LogLevel.WARN, data); }
+  error(message: string, data?: any) { this.log(message, LogLevel.ERROR, data); }
+}

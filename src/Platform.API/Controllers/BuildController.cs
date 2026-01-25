@@ -149,6 +149,10 @@ public class BuildController : ControllerBase
             var navCode = _frontendLayoutGen.GenerateNavigation(baseNamespace, security ?? new SecurityMetadata());
             AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.ts", navCode);
 
+            // 7c. Generate UI Logging Service
+            var logServiceCode = _frontendLayoutGen.GenerateLoggingService("DEBUG", true);
+            AddFileToZip(archive, "Frontend/src/app/services/logging.service.ts", logServiceCode);
+
             // 8. Generate DbContext
             if (entities.Any())
             {
@@ -163,6 +167,25 @@ public class BuildController : ControllerBase
                 var appSettings = $@"{{
   ""ConnectionStrings"": {{
     ""DefaultConnection"": ""{project.IsolatedConnectionString}""
+  }},
+  ""Serilog"": {{
+    ""MinimumLevel"": {{
+      ""Default"": ""Information"",
+      ""Override"": {{
+        ""Microsoft"": ""Warning"",
+        ""System"": ""Warning""
+      }}
+    }},
+    ""WriteTo"": [
+      {{ ""Name"": ""Console"" }},
+      {{
+        ""Name"": ""File"",
+        ""Args"": {{
+          ""path"": ""logs/log-.txt"",
+          ""rollingInterval"": ""Day""
+        }}
+      }}
+    ]
   }},
   ""Logging"": {{
     ""LogLevel"": {{
