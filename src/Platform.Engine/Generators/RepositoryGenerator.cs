@@ -40,7 +40,8 @@ public class RepositoryGenerator
             Name = metadata.Name,
             Namespace = metadata.Namespace,
             Fields = metadata.Fields,
-            Relations = metadata.Relations
+            Relations = metadata.Relations,
+            Events = metadata.Events
         }, member => member.Name);
     }
 }

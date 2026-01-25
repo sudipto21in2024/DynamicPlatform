@@ -8,6 +8,9 @@ using Platform.Runtime.Domain;
 using Platform.Runtime.Persistence;
 using {{ Namespace }};
 using GeneratedApp.Data;
+using Elsa.Workflows.Runtime;
+using Elsa.Workflows;
+using Platform.Runtime.Validation;
 
 namespace GeneratedApp.Repositories;
 
@@ -15,11 +18,13 @@ public class {{ Name }}Repository : IRepository<{{ Name }}>
 {
     private readonly GeneratedDbContext _context;
     private readonly DbSet<{{ Name }}> _dbSet;
+    private readonly IWorkflowRuntime _workflowRuntime;
 
-    public {{ Name }}Repository(GeneratedDbContext context)
+    public {{ Name }}Repository(GeneratedDbContext context, IWorkflowRuntime workflowRuntime)
     {
         _context = context;
         _dbSet = _context.Set<{{ Name }}>();
+        _workflowRuntime = workflowRuntime;
     }
 
     public async Task<{{ Name }}?> GetByIdAsync(Guid id)
@@ -39,14 +44,57 @@ public class {{ Name }}Repository : IRepository<{{ Name }}>
 
     public async Task AddAsync({{ Name }} entity)
     {
+        // 1. Evaluate Rules
+        var validationResult = Validate(entity);
+        if (!validationResult.IsValid)
+        {
+            // Trigger Workflow for Validation Failure (The "Blend")
+            await _workflowRuntime.TriggerWorkflowAsync(
+                eventName: "{{ Name }}ValidationFailed", 
+                input: new Dictionary<string, object?> { 
+                    ["{{ Name }}"] = entity,
+                    ["Errors"] = validationResult.Errors 
+                });
+
+            throw new Exception($"Validation failed for {{ Name }}: " + string.Join(", ", validationResult.Errors));
+        }
+
         await _dbSet.AddAsync(entity);
         await _context.SaveChangesAsync();
+        
+        {{~ if Events.OnCreate ~}}
+        // Trigger Elsa Workflow for Entity Created
+        await _workflowRuntime.TriggerWorkflowAsync(
+            eventName: "{{ Name }}Created", 
+            input: new Dictionary<string, object?> { ["{{ Name }}"] = entity });
+        {{~ end ~}}
     }
 
     public async Task UpdateAsync({{ Name }} entity)
     {
+        // 1. Evaluate Rules
+        var validationResult = Validate(entity);
+        if (!validationResult.IsValid)
+        {
+            await _workflowRuntime.TriggerWorkflowAsync(
+                eventName: "{{ Name }}ValidationFailed", 
+                input: new Dictionary<string, object?> { 
+                    ["{{ Name }}"] = entity,
+                    ["Errors"] = validationResult.Errors 
+                });
+
+            throw new Exception($"Validation failed for {{ Name }}: " + string.Join(", ", validationResult.Errors));
+        }
+
         _dbSet.Update(entity);
         await _context.SaveChangesAsync();
+
+        {{~ if Events.OnUpdate ~}}
+        // Trigger Elsa Workflow for Entity Updated
+        await _workflowRuntime.TriggerWorkflowAsync(
+            eventName: "{{ Name }}Updated", 
+            input: new Dictionary<string, object?> { ["{{ Name }}"] = entity });
+        {{~ end ~}}
     }
 
     public async Task DeleteAsync(Guid id)
@@ -56,11 +104,38 @@ public class {{ Name }}Repository : IRepository<{{ Name }}>
         {
             _dbSet.Remove(entity);
             await _context.SaveChangesAsync();
+
+            {{~ if Events.OnDelete ~}}
+            // Trigger Elsa Workflow for Entity Deleted
+            await _workflowRuntime.TriggerWorkflowAsync(
+                eventName: "{{ Name }}Deleted", 
+                input: new Dictionary<string, object?> { ["{{ Name }}Id"] = id });
+            {{~ end ~}}
         }
     }
 
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    private RuleResult Validate({{ Name }} entity)
+    {
+        var result = new RuleResult { IsValid = true };
+        
+        {{~ for field in Fields ~}}
+        {{~ if field.Rules && field.Rules.size > 0 ~}}
+        {{~ for rule in field.Rules ~}}
+        var res_{{field.Name}}_{{for.index}} = RuleEvaluator.Evaluate(entity.{{field.Name}}, "{{rule.Type}}", "{{rule.Value}}", "{{rule.ErrorMessage}}");
+        if (!res_{{field.Name}}_{{for.index}}.IsValid) 
+        {
+            result.IsValid = false;
+            result.Errors.AddRange(res_{{field.Name}}_{{for.index}}.Errors);
+        }
+        {{~ end ~}}
+        {{~ end ~}}
+        {{~ end ~}}
+
+        return result;
     }
 }

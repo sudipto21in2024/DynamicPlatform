@@ -180,6 +180,25 @@ import { ApiService } from '../../services/api';
                 </div>
               </div>
 
+              <!-- Workflow Triggers -->
+              <div class="space-y-3 pb-6 border-b border-white/5">
+                <label class="text-[11px] uppercase tracking-wider font-bold text-slate-500">Workflow Triggers</label>
+                <div class="grid grid-cols-1 gap-2">
+                   <div class="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg border border-white/5">
+                      <span class="text-[11px] text-slate-300">On Created</span>
+                      <input type="checkbox" [(ngModel)]="selectedNode.events.onCreate" class="rounded bg-slate-900 border-white/10 text-blue-600 focus:ring-0">
+                   </div>
+                   <div class="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg border border-white/5">
+                      <span class="text-[11px] text-slate-300">On Updated</span>
+                      <input type="checkbox" [(ngModel)]="selectedNode.events.onUpdate" class="rounded bg-slate-900 border-white/10 text-blue-600 focus:ring-0">
+                   </div>
+                   <div class="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg border border-white/5">
+                      <span class="text-[11px] text-slate-300">On Deleted</span>
+                      <input type="checkbox" [(ngModel)]="selectedNode.events.onDelete" class="rounded bg-slate-900 border-white/10 text-blue-600 focus:ring-0">
+                   </div>
+                </div>
+              </div>
+
               <!-- Relationships -->
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
@@ -280,6 +299,7 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
             const meta = JSON.parse(art.content);
             meta.id = art.id; // Keep artifact ID
             if (!meta.relations) meta.relations = []; // Ensure relations exist
+            if (!meta.events) meta.events = { onCreate: true, onUpdate: true, onDelete: true };
             return meta;
           } catch (e) { return null; }
         }).filter(x => x !== null);
@@ -305,6 +325,7 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
         { name: 'CreatedAt', type: 'datetime', isRequired: false }
       ],
       relations: [],
+      events: { onCreate: true, onUpdate: true, onDelete: true },
       x: 100,
       y: 100
     };

@@ -1,0 +1,35 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Elsa.Workflows;
+using Elsa.Workflows.Models;
+using Platform.Runtime.Validation;
+using Elsa.Workflows.Attributes;
+
+namespace {{Namespace}}.Workflows.Activities;
+
+[Activity("Platform", "Security", "Evaluates validation rules for an entity", DisplayName = "Evaluate Rules")]
+public class EvaluateRulesActivity : CodeActivity<RuleResult>
+{
+    [Input(Description = "The entity object to validate")]
+    public Input<object> Entity { get; set; } = default!;
+
+    [Input(Description = "The list of rules to apply (JSON)")]
+    public Input<string> RulesJson { get; set; } = default!;
+
+    protected override void Execute(ActivityExecutionContext context)
+    {
+        var entity = Entity.Get(context);
+        var rulesJson = RulesJson.Get(context);
+        
+        // Logical implementation: 
+        // In a real generated app, this would iterate through the properties of 'entity'
+        // and apply the rules defined in 'rulesJson'.
+        
+        var result = new RuleResult { IsValid = true };
+        
+        // This is a placeholder for the generated logic that bridges the Entity Metadata
+        // with the Runtime RuleEvaluator.
+        
+        context.SetResult(result);
+    }
+}

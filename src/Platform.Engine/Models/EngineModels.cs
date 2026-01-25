@@ -10,6 +10,14 @@ public class EntityMetadata
     public double Y { get; set; }
     public List<FieldMetadata> Fields { get; set; } = new();
     public List<RelationMetadata> Relations { get; set; } = new();
+    public EntityEventConfig Events { get; set; } = new();
+}
+
+public class EntityEventConfig
+{
+    public bool OnCreate { get; set; } = true;
+    public bool OnUpdate { get; set; } = true;
+    public bool OnDelete { get; set; } = true;
 }
 
 public class FieldMetadata

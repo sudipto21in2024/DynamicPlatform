@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Net.Http;
+using Microsoft.Extensions.Logging;
 using Platform.Core.Interfaces;
 
 namespace {{Namespace}};
@@ -11,14 +13,27 @@ namespace {{Namespace}};
 /// </summary>
 public class {{Name}}Connector : IConnector
 {
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<{{Name}}Connector> _logger;
+
     public string Name => "{{Name}}";
 
     {{~ for prop in ConfigProperties ~}}
     public {{prop.Type}} {{prop.Name}} { get; set; } {{~ if prop.DefaultValue ~}} = "{{prop.DefaultValue}}"; {{~ end ~}}
     {{~ end ~}}
 
+    public {{Name}}Connector(IHttpClientFactory httpClientFactory, ILogger<{{Name}}Connector> logger)
+    {
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
+
     public async Task<object?> ExecuteAsync(IDictionary<string, object?> inputs)
     {
+        // Utilities available in BusinessLogic:
+        var http = _httpClientFactory.CreateClient("{{Name}}");
+        var logger = _logger;
+
         // Extracting Inputs
         {{~ for input in Inputs ~}}
         var {{input.Name}} = inputs.ContainsKey("{{input.Name}}") ? ({{input.Type}})inputs["{{input.Name}}"]! : default;

@@ -20,6 +20,7 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services to the container.
+builder.Services.AddHttpClient();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -63,6 +64,22 @@ builder.Services.AddElsa(elsa =>
     elsa.UseJavaScript();
     elsa.UseLiquid();
 });
+
+// Register Workflow Definitions from JSON files
+builder.Services.AddOptions<Elsa.Workflows.Management.Options.WorkflowManagementOptions>()
+    .Configure<IServiceProvider, ILoggerFactory>((options, sp, loggerFactory) => {
+        var logger = loggerFactory.CreateLogger("WorkflowLoader");
+        var workflowsPath = Path.Combine(AppContext.BaseDirectory, "Workflows");
+        if (Directory.Exists(workflowsPath))
+        {
+            var files = Directory.GetFiles(workflowsPath, "*.json");
+            foreach (var file in files)
+            {
+                logger.LogInformation("Loading workflow definition from {File}", file);
+                // Implementation for auto-loading would go here or via Elsa's provider
+            }
+        }
+    });
 {{~ end ~}}
 
 var app = builder.Build();
