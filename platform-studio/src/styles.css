@@ -1,2 +1,42 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+
+@layer utilities {
+    .scrollbar-thin {
+        scrollbar-width: thin;
+    }
+}
+
+@layer utilities {
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            height: 0;
+        }
+
+        to {
+            opacity: 1;
+            height: auto;
+        }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+
+    .animate-slideDown {
+        animation: slideDown 0.2s ease-out forwards;
+    }
+}

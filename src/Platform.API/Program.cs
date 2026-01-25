@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
 
 // DB Context
 builder.Services.AddDbContext<PlatformDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Repositories
 builder.Services.AddScoped<IArtifactRepository, ArtifactRepository>();

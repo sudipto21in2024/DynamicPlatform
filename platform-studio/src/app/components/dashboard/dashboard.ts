@@ -63,7 +63,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
           </div>
         </header>
 
-        <div class="p-8">
+        <div class="flex-1">
           <router-outlet></router-outlet>
         </div>
       </main>

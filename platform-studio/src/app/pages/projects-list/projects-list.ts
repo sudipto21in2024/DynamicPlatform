@@ -8,7 +8,7 @@ import { ApiService } from '../../services/api';
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-6 p-8">
       <div class="flex items-center justify-between">
         <h2 class="text-3xl font-bold">Projects</h2>
         <div class="flex space-x-2">

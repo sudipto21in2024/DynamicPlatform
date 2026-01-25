@@ -10,160 +10,199 @@ import { ApiService } from '../../services/api';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="flex flex-col h-[calc(100vh-120px)]">
+    <div class="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-200">
       <!-- Toolbar -->
-      <div class="h-12 border-b border-slate-700/50 flex items-center justify-between px-4 bg-slate-900/50">
-        <div class="flex items-center space-x-4">
-          <button (click)="addEntity()" class="flex items-center space-x-2 text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-md transition-all">
-            <span class="material-icons-outlined text-sm">add</span>
-            <span>Add Entity</span>
+      <div class="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm z-20 shadow-sm">
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-3">
+             <div class="p-2 bg-blue-500/10 rounded-lg">
+                <span class="material-icons-outlined text-blue-400 text-lg">schema</span>
+             </div>
+             <div>
+                <h2 class="text-sm font-semibold text-white">Entity Model</h2>
+                <div class="text-[10px] text-slate-500 font-mono">ID: {{ projectId | slice:0:8 }}...</div>
+             </div>
+          </div>
+          <div class="w-px h-8 bg-white/10"></div>
+          <button (click)="addEntity()" class="group flex items-center space-x-2 text-sm bg-white/5 hover:bg-white/10 border border-white/5 active:bg-blue-600 active:border-blue-500 px-4 py-2 rounded-lg transition-all">
+            <span class="material-icons-outlined text-blue-400 group-hover:text-blue-300 text-lg">add_box</span>
+            <span class="font-medium">New Entity</span>
           </button>
-          <div class="w-px h-6 bg-slate-700 mx-2"></div>
-          <span class="text-xs text-slate-500">Project ID: {{ projectId }}</span>
         </div>
-        <div class="flex items-center space-x-2">
-          <button (click)="save()" class="flex items-center space-x-2 text-sm border border-blue-500/50 text-blue-400 hover:bg-blue-500/10 px-3 py-1.5 rounded-md transition-all">
-            <span class="material-icons-outlined text-sm">save</span>
-            <span>Save Changes</span>
+        <div class="flex items-center space-x-3">
+          <button (click)="save()" class="flex items-center space-x-2 text-sm text-slate-400 hover:text-white px-4 py-2 rounded-lg transition-colors hover:bg-white/5">
+            <span class="material-icons-outlined text-lg">save</span>
+            <span>Save</span>
           </button>
-          <button (click)="build()" class="flex items-center space-x-2 text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-md transition-all">
-             <span class="material-icons-outlined text-sm">bolt</span>
-             <span>Build</span>
+          <button (click)="build()" class="flex items-center space-x-2 text-sm bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg shadow-lg shadow-blue-900/50 transition-all transform active:scale-95">
+             <span class="material-icons-outlined text-lg">bolt</span>
+             <span>Generate</span>
           </button>
         </div>
       </div>
 
-      <div class="flex flex-1 overflow-hidden">
-        <!-- Toolbox (Left) -->
-        <aside class="w-16 border-r border-slate-700/50 flex flex-col items-center py-4 space-y-6 bg-slate-900/30">
-          <div class="cursor-pointer p-2 rounded-lg hover:bg-slate-800 text-blue-400" title="Entity">
-            <span class="material-icons-outlined text-3xl">token</span>
+      <div class="flex flex-1 overflow-hidden relative">
+        <!-- Floating Toolbox (Left) -->
+        <div class="absolute top-6 left-6 flex flex-col space-y-2 z-10">
+          <div class="bg-slate-800/90 backdrop-blur border border-white/10 p-2 rounded-xl shadow-xl flex flex-col space-y-4">
+            <button class="p-2 rounded-lg hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 transition-colors" title="Select">
+               <span class="material-icons-outlined text-xl">near_me</span>
+            </button>
+            <button class="p-2 rounded-lg hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 transition-colors" title="Entity">
+               <span class="material-icons-outlined text-xl">rectangle</span>
+            </button>
+            <button class="p-2 rounded-lg hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 transition-colors" title="Relation">
+               <span class="material-icons-outlined text-xl">timeline</span>
+            </button>
           </div>
-          <div class="cursor-pointer p-2 rounded-lg hover:bg-slate-800 text-slate-500" title="Relationship">
-            <span class="material-icons-outlined text-3xl">rebase_edit</span>
-          </div>
-        </aside>
+        </div>
 
         <!-- Canvas (Center) -->
-        <div #canvasContainer class="flex-1 bg-[slate-950] relative overflow-hidden">
+        <div #canvasContainer class="flex-1 bg-[#0B1120] relative overflow-hidden cursor-crosshair">
+           <!-- Grid Background handled by CSS -->
            <div id="konva-holder" class="absolute inset-0"></div>
+           
+           <div class="absolute bottom-6 left-6 text-xs text-slate-600 bg-slate-900/50 px-2 py-1 rounded border border-white/5">
+              Canvas Ready
+           </div>
         </div>
 
         <!-- Property Panel (Right) -->
-        <aside class="w-80 border-l border-slate-700/50 bg-slate-900/50 p-6 overflow-y-auto">
-          <h3 class="text-lg font-bold mb-4 flex items-center space-x-2">
-            <span class="material-icons-outlined text-slate-400">settings</span>
-            <span>Properties</span>
-          </h3>
-          
-          <div *ngIf="!selectedNode" class="flex flex-col items-center justify-center h-64 text-slate-600 border-2 border-dashed border-slate-800 rounded-xl">
-             <span class="material-icons-outlined text-4xl mb-2">touch_app</span>
-             <p class="text-sm">Select a node to edit</p>
+        <aside class="w-80 bg-slate-900/95 backdrop-blur-xl border-l border-white/10 flex flex-col shadow-2xl z-20">
+          <div class="h-14 border-b border-white/10 flex items-center px-6 bg-white/5">
+            <span class="material-icons-outlined text-slate-400 mr-2">tune</span>
+            <span class="font-semibold text-sm tracking-wide">Inspector</span>
           </div>
 
-          <div *ngIf="selectedNode" class="space-y-6">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Entity Name</label>
-              <input type="text" [(ngModel)]="selectedNode.name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 transition-all">
+          <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            
+            <div *ngIf="!selectedNode" class="flex flex-col items-center justify-center h-full text-slate-500 opacity-60">
+               <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                 <span class="material-icons-outlined text-3xl">touch_app</span>
+               </div>
+               <p class="text-sm font-medium">Select an entity to edit properties</p>
             </div>
 
-            <!-- Fields Section -->
-            <!-- Fields Section -->
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                 <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Fields</label>
-                 <button (click)="addField()" class="text-xs text-blue-400 hover:underline">+ Add Field</button>
+            <div *ngIf="selectedNode" class="space-y-8 animate-fadeIn">
+              <!-- Identity -->
+              <div class="space-y-1">
+                <label class="text-[11px] uppercase tracking-wider font-bold text-slate-500">Entity Name</label>
+                <input type="text" [(ngModel)]="selectedNode.name" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600">
               </div>
+
+              <!-- Fields -->
               <div class="space-y-3">
-                 <div *ngFor="let field of selectedNode.fields; let i = index" class="p-3 bg-slate-800/50 rounded-xl border border-slate-700/30 group">
-                    <!-- Field Header -->
-                    <div class="flex items-center justify-between mb-2">
-                      <input type="text" [(ngModel)]="field.name" class="bg-transparent border-none text-sm font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 rounded p-1 w-2/3">
-                      <div class="flex items-center space-x-2">
-                          <button (click)="field.isRulesOpen = !field.isRulesOpen" [class.text-blue-400]="field.rules?.length > 0" class="text-slate-500 hover:text-blue-400 transition-colors" title="Validation Rules">
-                            <span class="material-icons-outlined text-sm">gavel</span>
-                          </button>
-                          <button (click)="removeField(i)" class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-                            <span class="material-icons-outlined text-sm">delete</span>
-                          </button>
+                <div class="flex items-center justify-between">
+                   <label class="text-[11px] uppercase tracking-wider font-bold text-slate-500">Fields</label>
+                   <button (click)="addField()" class="flex items-center space-x-1 text-[11px] bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-2 py-1 rounded transition-colors">
+                      <span class="material-icons-outlined text-[14px]">add</span>
+                      <span>Add</span>
+                   </button>
+                </div>
+                
+                <div class="space-y-3">
+                   <div *ngFor="let field of selectedNode.fields; let i = index" class="p-3 bg-black/20 rounded-lg border border-white/10 hover:border-white/20 transition-colors group">
+                      
+                      <!-- Field Row 1 -->
+                      <div class="flex items-center space-x-2 mb-2">
+                        <input type="text" [(ngModel)]="field.name" class="flex-1 bg-transparent border-none text-sm font-medium text-white focus:outline-none placeholder-slate-600" placeholder="FieldName">
+                        
+                        <div class="flex items-center">
+                            <button (click)="field.isRulesOpen = !field.isRulesOpen" [class.text-blue-400]="field.rules?.length > 0" class="text-slate-500 hover:text-blue-400 p-1 rounded hover:bg-white/5 transition-colors" title="Rules">
+                              <span class="material-icons-outlined text-[16px]">gavel</span>
+                            </button>
+                            <button (click)="removeField(i)" class="text-slate-500 hover:text-red-400 p-1 rounded hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100">
+                              <span class="material-icons-outlined text-[16px]">close</span>
+                            </button>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <!-- Field Properties -->
-                    <div class="flex items-center space-x-2 mb-2">
-                      <select [(ngModel)]="field.type" class="bg-slate-700 text-xs rounded border-none px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none">
-                        <option value="string">String</option>
-                        <option value="int">Integer</option>
-                        <option value="guid">Guid</option>
-                        <option value="datetime">DateTime</option>
-                        <option value="decimal">Decimal</option>
-                        <option value="bool">Boolean</option>
-                      </select>
-                      <label class="flex items-center space-x-1 cursor-pointer">
-                        <input type="checkbox" [(ngModel)]="field.isRequired" class="rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-0">
-                        <span class="text-[10px] text-slate-500 uppercase">Required</span>
-                      </label>
-                    </div>
+                      
+                      <!-- Field Row 2 -->
+                      <div class="flex items-center space-x-2">
+                        <select [(ngModel)]="field.type" class="flex-1 bg-slate-800 text-[11px] rounded border border-white/5 px-2 py-1 focus:border-blue-500 outline-none text-slate-300">
+                          <option value="string">String</option>
+                          <option value="int">Integer</option>
+                          <option value="guid">Guid</option>
+                          <option value="datetime">DateTime</option>
+                          <option value="decimal">Decimal</option>
+                          <option value="bool">Boolean</option>
+                        </select>
+                        <label class="flex items-center space-x-1.5 cursor-pointer bg-slate-800 px-2 py-1 rounded border border-white/5 hover:bg-slate-700">
+                          <input type="checkbox" [(ngModel)]="field.isRequired" class="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-0 w-3 h-3">
+                          <span class="text-[10px] text-slate-400 font-medium">REQ</span>
+                        </label>
+                      </div>
 
-                    <!-- Rules Section (Collapsible) -->
-                    <div *ngIf="field.isRulesOpen" class="mt-3 pt-3 border-t border-slate-700/50">
-                        <div class="flex items-center justify-between mb-2">
-                             <label class="text-[10px] text-slate-500 uppercase">Validation Rules</label>
-                             <button (click)="addRule(field)" class="text-[10px] text-green-400 hover:underline">+ Add Rule</button>
-                        </div>
-                        <div class="space-y-2">
-                            <div *ngFor="let rule of field.rules; let ri = index" class="flex flex-col space-y-2 bg-slate-900/50 p-2 rounded border border-slate-700">
-                                <div class="flex items-center justify-between">
-                                    <select [(ngModel)]="rule.type" class="bg-slate-800 text-xs rounded border-none px-1 py-0.5 w-24">
-                                        <option value="Regex">Regex</option>
-                                        <option value="Range">Range</option>
-                                        <option value="Email">Email</option>
-                                        <option value="Phone">Phone</option>
-                                    </select>
-                                    <button (click)="removeRule(field, ri)" class="text-slate-600 hover:text-red-400">
-                                        <span class="material-icons-outlined text-xs">close</span>
-                                    </button>
-                                </div>
-                                <div *ngIf="rule.type === 'Regex' || rule.type === 'Range'" class="flex flex-col">
-                                    <input type="text" [(ngModel)]="rule.value" placeholder="Value (e.g. ^[0-9]*$ or 1,100)" class="bg-slate-800 text-xs rounded border border-slate-700 px-2 py-1 w-full text-slate-300">
-                                </div>
-                                <input type="text" [(ngModel)]="rule.errorMessage" placeholder="Error Message" class="bg-slate-800 text-xs rounded border border-slate-700 px-2 py-1 w-full text-slate-400 italic">
-                            </div>
-                            <div *ngIf="!field.rules?.length" class="text-center py-2 text-xs text-slate-600 italic">
-                                No rules defined
-                            </div>
-                        </div>
-                    </div>
-                 </div>
-              </div>
-            </div>
+                      <!-- Validation Rules Panel -->
+                      <div *ngIf="field.isRulesOpen" class="mt-3 pt-3 border-t border-white/5 animate-slideDown">
+                          <div class="flex items-center justify-between mb-2">
+                               <span class="text-[10px] text-slate-500 font-bold uppercase">Validations</span>
+                               <button (click)="addRule(field)" class="text-[10px] text-green-400 hover:text-green-300 transition-colors">+ Add</button>
+                          </div>
+                          <div class="space-y-2">
+                              <div *ngFor="let rule of field.rules; let ri = index" class="bg-black/40 p-2 rounded border border-white/5">
+                                  <div class="flex items-center justify-between mb-1">
+                                      <select [(ngModel)]="rule.type" class="bg-transparent text-[11px] font-mono text-blue-300 border-none px-0 py-0 w-20 focus:ring-0">
+                                          <option value="Regex">Regex</option>
+                                          <option value="Range">Range</option>
+                                          <option value="Email">Email</option>
+                                          <option value="Phone">Phone</option>
+                                      </select>
+                                      <button (click)="removeRule(field, ri)" class="text-slate-600 hover:text-red-400">
+                                          <span class="material-icons-outlined text-[14px]">remove_circle</span>
+                                      </button>
+                                  </div>
+                                  <div *ngIf="rule.type === 'Regex' || rule.type === 'Range'" class="mb-1">
+                                      <input type="text" [(ngModel)]="rule.value" placeholder="Value..." class="w-full bg-slate-800/50 text-[11px] rounded border border-white/5 px-2 py-1 text-slate-300">
+                                  </div>
+                                  <input type="text" [(ngModel)]="rule.errorMessage" placeholder="Error msg..." class="w-full bg-transparent text-[11px] border-b border-white/5 px-0 py-0.5 text-slate-500 italic focus:border-slate-500 focus:ring-0 placeholder-slate-700">
+                              </div>
+                          </div>
+                      </div>
 
-            <!-- Relationships Section -->
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                 <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Relationships</label>
-                 <button (click)="addRelation()" class="text-xs text-indigo-400 hover:underline">+ Add Relation</button>
+                   </div>
+                </div>
               </div>
+
+              <!-- Relationships -->
               <div class="space-y-3">
-                 <div *ngFor="let rel of selectedNode.relations; let i = index" class="p-3 bg-indigo-900/10 rounded-xl border border-indigo-500/20 group">
-                    <div class="flex items-center justify-between mb-2">
-                      <select [(ngModel)]="rel.targetEntity" class="bg-transparent border-none text-sm font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded p-1 w-2/3">
+                <div class="flex items-center justify-between">
+                   <label class="text-[11px] uppercase tracking-wider font-bold text-slate-500">Relations</label>
+                   <button (click)="addRelation()" class="flex items-center space-x-1 text-[11px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-1 rounded transition-colors">
+                      <span class="material-icons-outlined text-[14px]">add</span>
+                      <span>Link</span>
+                   </button>
+                </div>
+
+                <div class="space-y-2">
+                   <div *ngFor="let rel of selectedNode.relations; let i = index" class="p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/10 hover:border-indigo-500/30 transition-colors group">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-1 text-xs text-indigo-300">
+                            <span class="material-icons-outlined text-[14px] rotate-90">alt_route</span>
+                            <span>To:</span>
+                        </div>
+                        <button (click)="removeRelation(i)" class="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="material-icons-outlined text-[14px]">close</span>
+                        </button>
+                      </div>
+                      
+                      <select [(ngModel)]="rel.targetEntity" class="w-full bg-slate-800 text-xs rounded border border-white/5 px-2 py-1.5 focus:border-indigo-500 outline-none text-white mb-2">
+                         <option value="" disabled selected>Select Target</option>
                          <option *ngFor="let target of entities" [value]="target.name">{{ target.name }}</option>
                       </select>
-                      <button (click)="removeRelation(i)" class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-                        <span class="material-icons-outlined text-sm">delete</span>
-                      </button>
-                    </div>
-                    <div class="flex flex-col space-y-2">
-                      <select [ngModel]="rel.type" (ngModelChange)="rel.type = +$event" class="bg-slate-700 text-xs rounded border-none px-2 py-1 focus:ring-1 focus:ring-indigo-500 outline-none w-full">
-                        <option [value]="0">One to Many</option>
-                        <option [value]="1">Many to One</option>
-                        <option [value]="2">Many to Many</option>
-                      </select>
-                      <input type="text" [(ngModel)]="rel.navPropName" placeholder="Navigation Property" class="bg-slate-800 text-xs rounded border border-slate-700 px-2 py-1 w-full outline-none focus:border-indigo-500">
-                    </div>
-                 </div>
+
+                      <div class="grid grid-cols-2 gap-2">
+                          <select [ngModel]="rel.type" (ngModelChange)="rel.type = +$event" class="bg-slate-800 text-[10px] rounded border border-white/5 px-1 py-1 text-indigo-200 focus:border-indigo-500 outline-none">
+                            <option [value]="0">1 : N</option>
+                            <option [value]="1">N : 1</option>
+                            <option [value]="2">M : N</option>
+                          </select>
+                          <input type="text" [(ngModel)]="rel.navPropName" placeholder="PropName" class="bg-slate-800 text-[10px] rounded border border-white/5 px-2 py-1 text-white focus:border-indigo-500 outline-none">
+                      </div>
+                   </div>
+                </div>
               </div>
+
             </div>
           </div>
         </aside>
