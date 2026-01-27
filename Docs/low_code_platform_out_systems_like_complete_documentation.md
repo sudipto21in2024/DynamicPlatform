@@ -185,6 +185,10 @@ Break the platform into independently buildable capabilities.
 - Workflow Modeling Engine
 - Metadata Management
 - Code Generation Engine
+- Report & Analytics Engine
+- Versioning & Change Management Engine
+- Notification & Communication Engine
+- Unified Asset Management (DAM)
 - Runtime Execution Platform
 
 ### Deliverables
@@ -649,6 +653,19 @@ Enable adoption.
 - **Dynamic Pagination Engine**: Universal server-side pagination across Repositories, APIs, and UI Components (DataGrid).
 - **Universal Connection Hub**: Connectors for SAP, Salesforce, and NoSQL providers.
 - **Client-Side State Management**: Automated state hydration for generated Angular apps.
+
+### Phase 3: Enterprise Reporting & Intelligence (New 📊)
+- **Hybrid Report Engine**: Unified execution pipeline for **Quick** (interactive) and **Long-Running** (background) jobs.
+- **Visual Data Designer**: Drag-and-drop query builder with aggregation, filtering, and cross-entity join capabilities.
+- **Pro-Code Scripting Window**: C#/LINQ editor for complex logic, stored procedure wrapping, and data transformation scenarios.
+- **Pixel-Perfect Output**: Native generators for **PDF** (QuestPDF) and **Excel** (OpenXML/ClosedXML) with streaming support for large datasets.
+- **Job Orchestration**: Background worker integration (Hangfire/Quartz) for managing heavy workloads without blocking the UI.
+
+### Phase 3.5: Communication & Assets (New 📢)
+- **Universal Notification Hub**: Unified API for Email (SMTP/SendGrid), SMS (Twilio), and Push notifications.
+- **Visual Email Designer**: Drag-and-drop MJML editor for creating responsive, data-driven email templates.
+- **Asset Management System (DAM)**: Centralized file manager with drag-and-drop uploads and image optimization.
+- **Storage Connectors**: Plug-and-play support for AWS S3, Azure Blob, and MinIO.
 
 ### Phase 4: Ecosystem & Scale
 - **Marketplace**: Community sharing of templates and connectors.

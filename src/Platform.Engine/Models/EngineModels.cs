@@ -141,15 +141,46 @@ public class PaginationConfig
     public bool AllowClientOverride { get; set; } = true;
 }
 
-public class CustomObjectMetadata
+public class FormContext
 {
-    public string Name { get; set; } = string.Empty;
-    public string Namespace { get; set; } = string.Empty;
-    public List<CustomField> Fields { get; set; } = new();
+    // Indicates whether the form is used for creating a new entity or editing an existing one
+    public string Mode { get; set; } = "Create"; // or "Edit"
+
+    // Optional parent entity identifier (e.g., a PatientId when creating an Appointment form)
+    public string? ParentEntityId { get; set; }
+
+    // Arbitrary key‑value pairs for additional runtime data (e.g., workflow IDs, UI flags)
+    public Dictionary<string, string> AdditionalData { get; set; } = new();
 }
 
-public class CustomField
+// Extend FormMetadata to hold the context definition
+public class FormMetadata
 {
     public string Name { get; set; } = string.Empty;
-    public string Type { get; set; } = "string";
+    public string EntityTarget { get; set; } = string.Empty; // The entity this form creates/edits
+    public string Layout { get; set; } = "Vertical"; // Vertical | Horizontal | Inline
+    public List<FormSection> Sections { get; set; } = new();
+    public List<FormField> Fields { get; set; } = new(); // Flat list for quick lookup
+    public FormContext Context { get; set; } = new(); // New context property
+}
+
+public class FormSection
+{
+    public string Title { get; set; } = string.Empty;
+    public List<string> FieldNames { get; set; } = new(); // References FormField.Name
+    public int Order { get; set; } = 0;
+}
+
+public class FormField
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = "string"; // string, int, datetime, enum, etc.
+    public bool IsRequired { get; set; } = false;
+    public string Label { get; set; } = string.Empty;
+    public string Placeholder { get; set; } = string.Empty;
+    public string Tooltip { get; set; } = string.Empty;
+    public string EnumReference { get; set; } = string.Empty; // If Type == enum
+    public string ValidationPattern { get; set; } = string.Empty; // Regex or other rule
+    public string DefaultValue { get; set; } = string.Empty;
+    public int Order { get; set; } = 0;
 }

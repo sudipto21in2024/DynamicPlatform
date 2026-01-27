@@ -55,11 +55,11 @@ This document provides an analysis of the low-code platform market and suggests 
 *   **Impact**: Instant MVP generation.
 *   **Implementation**: Integrate Gemini/Qwen APIs to generate the initial `ProjectMetadata` JSON.
 
-### E. Advanced ALM (Application Lifecycle Management)
-*   **Feature**: **Full-Stack Build Verification**. A process that generates the entire project (API + SPA) in a containerized runner and attempts a full compilation (`dotnet build` and `npm run build`).
-*   **Feature**: Visual diffing of versions, easy rollbacks, and automated database migrations during deployment.
-*   **Impact**: Enterprise-grade reliability; prevents "Broken" apps from being published.
-*   **Implementation**: Use a Build Service that executes `dotnet build` on the generated C# artifacts.
+### E. Delta Management & Versioning (Advanced ALM)
+*   **Feature**: **Smart Evolution Engine**. A system that versions every entity and logic block with GUIDs.
+*   **Feature**: **Impact Analysis**. Before publishing, the system detects breaking changes (e.g., deleting a field used in a Report) and warns the user.
+*   **Impact**: Enterprise-grade reliability; prevents "Broken" apps from being published and handles data migrations.
+*   **Implementation**: Use the **Delta Detection Engine** to lock metadata versions, calculate schema diffs, and generate safe SQL migration scripts. Use a Build Service for compilation checks.
 
 ---
 

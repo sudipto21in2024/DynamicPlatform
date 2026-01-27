@@ -91,7 +91,20 @@ After the engine completes the build, it provides an **Artifact** (usually a ZIP
 
 ---
 
-## 6. Summary Flowchart
+## 6. Step 5: Managing Updates (Day 2 Operations)
+Applications are living systems. When you need to change a field, add logic, or update a report, follow the **Safe Evolution** process.
+
+1.  **Draft Mode**: All changes start in a "Draft" version of your project. The running app (v1.0) is effectively read-only.
+2.  **Delta Analysis**: When you click "Publish", the platform compares your Draft vs. Live to detect breaking changes.
+    *   *Green*: Safe to deploy (e.g., adding a field).
+    *   *Red*: Destructive (e.g., deleting a column). You will be prompted to approve a migration plan.
+3.  **Migration**: The platform automatically applies database schema changes and pins running workflows to their original version to prevent errors.
+
+*For deep dive on versioning internals, see [DELTA_MANAGEMENT_AND_VERSIONING.md](./DELTA_MANAGEMENT_AND_VERSIONING.md).*
+
+---
+
+## 7. Summary Flowchart
 ```mermaid
 graph TD
     A[Studio Designer] -->|Saves Metadata| B(Platform API)
@@ -100,10 +113,11 @@ graph TD
     C -->|Templates| E[Generated Angular UI]
     D & E -->|Build| F[Docker Image / Artifact]
     F -->|Deploy| G[Live Application]
+    G -->|Update Request| A
 ```
 
 ---
 
-## 7. Developer Tips
+## 8. Developer Tips
 - **AI Copilot**: Use the built-in Gemini integration to describe your app in natural language (e.g., "Build me a CRM with Customers and Invoices"), and it will scaffold the entities for you.
 - **Extensibility**: Always check the `Docs/guidance` folder if you need to add custom templates to the Engine.
