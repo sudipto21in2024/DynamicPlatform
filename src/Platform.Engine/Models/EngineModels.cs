@@ -94,8 +94,41 @@ public class WidgetMetadata
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Type { get; set; } = "StatCard"; 
     public WidgetLayout Layout { get; set; } = new();
-    public WidgetConfig Config { get; set; } = new();
-    public WidgetDataSource DataSource { get; set; } = new();
+    
+    // Dynamic Properties (replaces fixed Config)
+    public Dictionary<string, object> Properties { get; set; } = new();
+    
+    // Universal Data Binding
+    public WidgetDataSource Bindings { get; set; } = new();
+    
+    // Micro-interactions
+    public List<WidgetInteraction> Interactions { get; set; } = new();
+}
+
+public class WidgetInteraction 
+{
+    public string Trigger { get; set; } = "onClick"; // onClick, onHover
+    public string Action { get; set; } = "Navigate"; // Navigate, ShowModal
+    public string Target { get; set; } = ""; // Route or Modal ID
+    public Dictionary<string, string> Params { get; set; } = new();
+}
+
+public class WidgetDefinition
+{
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = "Custom";
+    public string Template { get; set; } = "<div>{{title}}</div>";
+    public List<WidgetPropertyDef> PropertyDefinitions { get; set; } = new();
+    public List<string> Events { get; set; } = new(); // e.g., ["onClick", "onSelectionChanged"]
+}
+
+public class WidgetPropertyDef
+{
+    public string Name { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Type { get; set; } = "string"; // string, number, boolean, color, enum
+    public string DefaultValue { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = new(); // For enum type
 }
 
 public class WidgetLayout
@@ -114,26 +147,16 @@ public class GridDimension
     public int RowSpan { get; set; }
 }
 
-public class WidgetConfig
-{
-    public string Title { get; set; } = string.Empty;
-    public string SubTitle { get; set; } = string.Empty;
-    public string Icon { get; set; } = string.Empty;
-    public string Theme { get; set; } = "primary";
-}
-
 public class WidgetDataSource
 {
-    public string EntityName { get; set; } = string.Empty;
-    public string DataType { get; set; } = "Entity"; // Entity or CustomObject
-    public string Aggregate { get; set; } = "count"; // count, sum, avg, list
-    public string DataField { get; set; } = string.Empty;
-    public string Filter { get; set; } = string.Empty;
-    public string Sort { get; set; } = string.Empty;
+    public string Provider { get; set; } = "Entity"; // Entity, API, Workflow, Static
+    public string Source { get; set; } = string.Empty; // "Appointment" or "/api/..."
+    public Dictionary<string, object> Params { get; set; } = new(); // Filter, Limit, etc.
+    public Dictionary<string, string> Mapping { get; set; } = new(); // Map Source Field -> Widget Prop
+    
+    // Legacy support helpers (optional, can be removed if we migrate fully)
     public PaginationConfig Pagination { get; set; } = new();
-    public int Limit { get; set; } = 10;
 }
-
 public class PaginationConfig
 {
     public bool Enabled { get; set; } = false;

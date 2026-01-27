@@ -161,4 +161,21 @@ public class MetadataLoader
             return null;
         }
     }
+
+    public WidgetDefinition? LoadWidgetDefinition(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.Widget)
+        {
+            throw new ArgumentException("Artifact is not a Widget type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<WidgetDefinition>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

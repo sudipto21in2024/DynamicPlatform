@@ -26,6 +26,10 @@ export const routes: Routes = [
                 path: 'projects/:id/forms/:formId',
                 loadComponent: () => import('./pages/form-designer/form-designer').then(m => m.FormDesignerComponent)
             },
+            {
+                path: 'projects/:projectId/widgets',
+                loadComponent: () => import('./pages/widget-designer/widget-designer').then(m => m.WidgetDesignerComponent)
+            },
             { path: '', redirectTo: 'projects', pathMatch: 'full' }
         ]
     }

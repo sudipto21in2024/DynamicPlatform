@@ -70,6 +70,18 @@ export class ApiService {
     return this.http.put<any>(`${this.apiUrl}/projects/${projectId}/forms/${formId}`, metadata);
   }
 
+  getWidgets(projectId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/projects/${projectId}/widgets`);
+  }
+
+  createWidget(projectId: string, definition: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/widgets`, definition);
+  }
+
+  updateWidget(projectId: string, widgetId: string, definition: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/projects/${projectId}/widgets/${widgetId}`, definition);
+  }
+
   request(method: string, path: string, body?: any): Observable<any> {
     return this.http.request(method, `${this.apiUrl}/${path}`, { body });
   }

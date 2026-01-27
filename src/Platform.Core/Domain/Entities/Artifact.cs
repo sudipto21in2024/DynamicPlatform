@@ -14,7 +14,8 @@ public enum ArtifactType
     UsersConfig = 7,
     CustomObject = 8,
     Enum = 9,
-    Form = 10
+    Form = 10,
+    Widget = 11
 }
 
 public class Artifact

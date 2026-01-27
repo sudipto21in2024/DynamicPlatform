@@ -14,23 +14,17 @@ interface GridDimension {
 interface WidgetMetadata {
   id: string;
   type: string;
-  config: {
-    title: string;
-    icon: string;
-    theme: string;
-    subTitle?: string;
-  };
+  properties: { [key: string]: any }; // Generic Key-Value Store
   layout: {
     desktop: GridDimension;
     tablet: GridDimension;
     mobile: GridDimension;
   };
-  dataSource: {
-    entityName: string;
-    dataType: string;
-    aggregate: string;
-    dataField?: string;
-    filter?: string;
+  bindings: {
+    provider: string; // Entity, API
+    source: string;   // Entity Name
+    params: any;
+    mapping?: any;
     pagination?: {
       enabled: boolean;
       pageSize: number;
@@ -62,7 +56,7 @@ interface WidgetMetadata {
                 <button [routerLink]="['/projects', projectId, 'designer']" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-white transition-all">Entities</button>
                 <div class="bg-blue-600/20 text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-500/20 shadow-lg shadow-blue-500/10">Pages</div>
                 <button [routerLink]="['/projects', projectId, 'enums']" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-white transition-all">Enums</button>
-                <button [routerLink]="['/projects', projectId, 'workflows']" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-white transition-all">Workflows</button>
+                <button [routerLink]="['/projects', projectId, 'widgets']" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-white transition-all">Widgets</button>
              </nav>
           </div>
         </div>
@@ -134,12 +128,12 @@ interface WidgetMetadata {
                 
                 <div class="flex justify-between items-start mb-4">
                   <div class="flex items-center space-x-3">
-                    <div class="p-2 rounded-xl" [ngClass]="getThemeClass(widget.config.theme)">
-                      <span class="material-icons-outlined text-lg">{{widget.config.icon}}</span>
+                    <div class="p-2 rounded-xl" [ngClass]="getThemeClass(widget.properties['theme'])">
+                      <span class="material-icons-outlined text-lg">{{widget.properties['icon']}}</span>
                     </div>
                     <div>
-                      <h3 class="text-xs font-black uppercase tracking-widest text-white">{{widget.config.title}}</h3>
-                      <p class="text-[9px] text-slate-500 font-bold opacity-60">{{widget.config.subTitle}}</p>
+                      <h3 class="text-xs font-black uppercase tracking-widest text-white">{{widget.properties['title']}}</h3>
+                      <p class="text-[9px] text-slate-500 font-bold opacity-60">{{widget.properties['subTitle']}}</p>
                     </div>
                   </div>
                   <button (click)="removeWidget($event, widget.id)" class="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-500">
@@ -183,7 +177,7 @@ interface WidgetMetadata {
                        <div class="h-2 bg-white/10 rounded w-3/4"></div>
                        <div class="h-2 bg-white/10 rounded w-5/6"></div>
                    </div>
-                   <span class="text-[8px] font-black uppercase mt-4 tracking-[0.3em] font-mono">{{widget.dataSource.entityName}} SOURCE</span>
+                   <span class="text-[8px] font-black uppercase mt-4 tracking-[0.3em] font-mono">{{widget.bindings.source}} SOURCE</span>
                 </div>
 
                 <!-- Resize / Move Handles (Future) -->
@@ -271,18 +265,22 @@ interface WidgetMetadata {
                 <section class="space-y-4">
                   <label class="text-[10px] uppercase tracking-[0.2em] font-black text-blue-500/60 block">Design Config</label>
                   <div class="space-y-4 bg-black/20 p-4 rounded-2xl border border-white/5">
+                    <!-- Generic Property Look (Iterate for Custom? For now fixed for standard) -->
                     <div class="space-y-1">
                       <span class="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Widget Title</span>
-                      <input type="text" [(ngModel)]="selectedWidget.config.title" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none">
+                      <input type="text" [(ngModel)]="selectedWidget.properties['title']" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none">
                     </div>
                     <div class="space-y-1">
                       <span class="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Visual Theme</span>
-                      <select [(ngModel)]="selectedWidget.config.theme" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-400 outline-none">
+                      <select [(ngModel)]="selectedWidget.properties['theme']" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-400 outline-none">
                         <option value="primary">Enterprise Blue</option>
                         <option value="success">Success Green</option>
                         <option value="danger">Warning Red</option>
                         <option value="glass">Glass Morphic</option>
                       </select>
+                    </div>
+                    <div class="p-2 border-t border-white/5 mt-2">
+                        <p class="text-[9px] text-slate-500">TODO: Dynamic Property Iterator for custom properties.</p>
                     </div>
                   </div>
                 </section>
@@ -307,47 +305,26 @@ interface WidgetMetadata {
                   <label class="text-[10px] uppercase tracking-[0.2em] font-black text-emerald-500/60 block">Data Propagation</label>
                   <div class="space-y-4 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
                     <div class="grid grid-cols-2 gap-2">
-                       <button (click)="selectedWidget.dataSource.dataType = 'Entity'" 
-                               [class.bg-emerald-600]="selectedWidget.dataSource.dataType === 'Entity'"
+                       <button (click)="selectedWidget.bindings.provider = 'Entity'" 
+                               [class.bg-emerald-600]="selectedWidget.bindings.provider === 'Entity'"
                                class="py-1.5 rounded bg-black/40 text-[8px] font-black uppercase transition-all">Raw Entity</button>
-                       <button (click)="selectedWidget.dataSource.dataType = 'CustomObject'" 
-                               [class.bg-emerald-600]="selectedWidget.dataSource.dataType === 'CustomObject'"
-                               class="py-1.5 rounded bg-black/40 text-[8px] font-black uppercase transition-all">Custom DTO</button>
+                       <button (click)="selectedWidget.bindings.provider = 'API'" 
+                               [class.bg-emerald-600]="selectedWidget.bindings.provider === 'API'"
+                               class="py-1.5 rounded bg-black/40 text-[8px] font-black uppercase transition-all">API / Query</button>
                     </div>
 
                     <div class="space-y-1">
-                      <span class="text-[8px] font-bold text-emerald-900/60 uppercase tracking-tighter">Source {{ selectedWidget.dataSource.dataType === 'Entity' ? 'Domain' : 'Query Name' }}</span>
-                      <select [(ngModel)]="selectedWidget.dataSource.entityName" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-400 outline-none">
-                        <option value="Appointment">Appointment</option>
-                        <option value="Patient">Patient</option>
-                        <option value="Doctor">Doctor</option>
-                        <option value="ClinicStats">ClinicStats (Custom)</option>
-                      </select>
+                      <span class="text-[8px] font-bold text-emerald-900/60 uppercase tracking-tighter">Source Identity</span>
+                      <input type="text" [(ngModel)]="selectedWidget.bindings.source" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-400 outline-none" placeholder="EntityName or URL">
                     </div>
 
                     <div class="space-y-1" *ngIf="['StatCard', 'Chart'].includes(selectedWidget.type)">
                        <span class="text-[8px] font-bold text-emerald-900/60 uppercase tracking-tighter">Aggregate function</span>
                        <div class="flex space-x-1">
                           <button *ngFor="let agg of ['count', 'sum', 'avg', 'list']" 
-                                  (click)="selectedWidget.dataSource.aggregate = agg"
-                                  [class.bg-emerald-600]="selectedWidget.dataSource.aggregate === agg"
+                                  (click)="selectedWidget.bindings.params.aggregate = agg"
+                                  [class.bg-emerald-600]="selectedWidget.bindings.params.aggregate === agg"
                                   class="flex-1 py-1.5 rounded bg-black/40 text-[8px] font-black uppercase transition-all">{{agg}}</button>
-                       </div>
-                    </div>
-
-                    <!-- Pagination Toggle -->
-                    <div class="pt-2 border-t border-white/5 space-y-3" *ngIf="selectedWidget.type === 'DataGrid'">
-                       <div class="flex items-center justify-between">
-                          <span class="text-[9px] font-bold text-slate-400 uppercase">Enable Pagination</span>
-                          <div class="w-8 h-4 bg-emerald-600/40 rounded-full relative cursor-pointer" 
-                               (click)="selectedWidget.dataSource.pagination!.enabled = !selectedWidget.dataSource.pagination!.enabled">
-                             <div class="absolute top-1 w-2 h-2 rounded-full bg-white transition-all shadow-glow-blue" 
-                                  [style.left.px]="selectedWidget.dataSource.pagination!.enabled ? 20 : 4"></div>
-                          </div>
-                       </div>
-                       <div *ngIf="selectedWidget.dataSource.pagination!.enabled" class="space-y-1 animate-slideDown">
-                          <span class="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Records per page</span>
-                          <input type="number" [(ngModel)]="selectedWidget.dataSource.pagination!.pageSize" min="1" max="100" class="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none">
                        </div>
                     </div>
                   </div>
@@ -443,24 +420,24 @@ export class PageDesigner implements OnInit {
       {
         id: 'w1',
         type: 'Hero',
-        config: { title: 'Health Horizon Clinic', icon: 'medical_services', theme: 'primary', subTitle: 'Excellence in Precision Medicine' },
+        properties: { title: 'Health Horizon Clinic', icon: 'medical_services', theme: 'primary', subTitle: 'Excellence in Precision Medicine' },
         layout: {
           desktop: { colStart: 0, colSpan: 12, rowStart: 0, rowSpan: 3 },
           tablet: { colStart: 0, colSpan: 12, rowStart: 0, rowSpan: 3 },
           mobile: { colStart: 0, colSpan: 12, rowStart: 0, rowSpan: 2 }
         },
-        dataSource: { entityName: 'System', dataType: 'Entity', aggregate: 'static', pagination: { enabled: false, pageSize: 25 } }
+        bindings: { provider: 'Static', source: 'System', params: {} }
       },
       {
         id: 'w2',
         type: 'StatCard',
-        config: { title: 'Specialists', icon: 'groups', theme: 'glass', subTitle: 'Available Today' },
+        properties: { title: 'Specialists', icon: 'groups', theme: 'glass', subTitle: 'Available Today' },
         layout: {
           desktop: { colStart: 0, colSpan: 4, rowStart: 3, rowSpan: 1 },
           tablet: { colStart: 0, colSpan: 4, rowStart: 3, rowSpan: 1 },
           mobile: { colStart: 0, colSpan: 12, rowStart: 2, rowSpan: 1 }
         },
-        dataSource: { entityName: 'Doctor', dataType: 'Entity', aggregate: 'count', pagination: { enabled: false, pageSize: 25 } }
+        bindings: { provider: 'Entity', source: 'Doctor', params: { aggregate: 'count' } }
       }
     ];
   }
@@ -469,7 +446,7 @@ export class PageDesigner implements OnInit {
     const newWidget: WidgetMetadata = {
       id: Math.random().toString(36).slice(2, 11),
       type: type,
-      config: {
+      properties: {
         title: 'New ' + type,
         icon: this.getIconForType(type),
         theme: 'primary',
@@ -480,11 +457,10 @@ export class PageDesigner implements OnInit {
         tablet: { colStart: 0, colSpan: 6, rowStart: 0, rowSpan: 2 },
         mobile: { colStart: 0, colSpan: 12, rowStart: 0, rowSpan: 2 }
       },
-      dataSource: {
-        entityName: 'Appointment',
-        dataType: 'Entity',
-        aggregate: 'count',
-        pagination: { enabled: type === 'DataGrid', pageSize: 25 }
+      bindings: {
+        provider: 'Entity',
+        source: 'Appointment',
+        params: { aggregate: 'count', pagination: { enabled: type === 'DataGrid', pageSize: 25 } }
       }
     };
     this.widgets.push(newWidget);
