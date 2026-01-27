@@ -189,6 +189,7 @@ Break the platform into independently buildable capabilities.
 - Versioning & Change Management Engine
 - Notification & Communication Engine
 - Unified Asset Management (DAM)
+- Advanced UI & Widget Engine
 - Runtime Execution Platform
 
 ### Deliverables
@@ -666,6 +667,12 @@ Enable adoption.
 - **Visual Email Designer**: Drag-and-drop MJML editor for creating responsive, data-driven email templates.
 - **Asset Management System (DAM)**: Centralized file manager with drag-and-drop uploads and image optimization.
 - **Storage Connectors**: Plug-and-play support for AWS S3, Azure Blob, and MinIO.
+
+### Phase 3.6: Advanced UI & Widget Engine (Planned 🎨)
+- **Generic Page Designer**: Layout-first designer for creating generic pages (not just dashboards).
+- **Custom Widget Studio**: Visual builder for defining new reusable widgets with custom props and events.
+- **Universal Data Binding**: `IWidgetDataSource` standard to connect widgets to Entities, APIs, or Workflows.
+- **Interaction Designer**: Configurable micro-interactions (OnClick, OnHover) for navigation and state changes.
 
 ### Phase 4: Ecosystem & Scale
 - **Marketplace**: Community sharing of templates and connectors.
