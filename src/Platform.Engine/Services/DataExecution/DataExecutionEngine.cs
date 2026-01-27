@@ -2,6 +2,7 @@ namespace Platform.Engine.Services.DataExecution;
 
 using Platform.Engine.Interfaces;
 using Platform.Engine.Models.DataExecution;
+using Elsa.Services;
 
 /// <summary>
 /// Orchestrates data operation execution across different providers
@@ -10,15 +11,21 @@ public class DataExecutionEngine
 {
     private readonly IEnumerable<IDataProvider> _providers;
     private readonly IEnumerable<IOutputGenerator> _outputGenerators;
+    private readonly IWorkflowRunner _workflowRunner;
+    private readonly IJobTrackingService _jobTracking;
     private const int QuickJobTimeoutSeconds = 30;
     private const int QuickJobMaxRows = 10000;
     
     public DataExecutionEngine(
         IEnumerable<IDataProvider> providers,
-        IEnumerable<IOutputGenerator> outputGenerators)
+        IEnumerable<IOutputGenerator> outputGenerators,
+        IWorkflowRunner workflowRunner,
+        IJobTrackingService jobTracking)
     {
         _providers = providers;
         _outputGenerators = outputGenerators;
+        _workflowRunner = workflowRunner;
+        _jobTracking = jobTracking;
     }
     
     public async Task<DataResult> ExecuteQuickJobAsync(
@@ -92,7 +99,8 @@ public class DataExecutionEngine
         DataOperationMetadata metadata,
         Dictionary<string, object> parameters,
         ExecutionContext context,
-        string outputFormat = "Excel")
+        string outputFormat = "Excel",
+        string? reportTitle = null)
     {
         // Select appropriate provider
         var provider = _providers.FirstOrDefault(p => p.ProviderType == providerType);
@@ -113,8 +121,38 @@ public class DataExecutionEngine
         // Create job ID
         var jobId = Guid.NewGuid().ToString();
         
-        // TODO: Queue the job using Hangfire or IHostedService
-        // For now, just return the job ID
+        // Start Elsa workflow
+        var workflowInput = new Dictionary<string, object>
+        {
+            ["JobId"] = jobId,
+            ["Metadata"] = metadata,
+            ["Parameters"] = parameters,
+            ["Context"] = context,
+            ["ProviderType"] = providerType,
+            ["OutputFormat"] = outputFormat,
+            ["ReportTitle"] = reportTitle ?? "Report",
+            ["UserId"] = context.UserId,
+            ["ChunkSize"] = 1000,
+            ["ContainerName"] = "reports",
+            ["IncludeHeaders"] = true
+        };
+        
+        var workflowInstance = await _workflowRunner.RunWorkflowAsync(
+            "LongRunningReportWorkflow",
+            input: workflowInput
+        );
+        
+        // Track job
+        await _jobTracking.CreateJobAsync(new JobInstance
+        {
+            JobId = jobId,
+            UserId = context.UserId,
+            Status = JobStatus.Queued,
+            CreatedAt = DateTime.UtcNow,
+            WorkflowInstanceId = workflowInstance.Id,
+            ReportTitle = reportTitle,
+            OutputFormat = outputFormat
+        });
         
         return jobId;
     }

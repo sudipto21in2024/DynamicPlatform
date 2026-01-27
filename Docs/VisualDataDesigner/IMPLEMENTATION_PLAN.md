@@ -209,21 +209,23 @@ public interface IOutputGenerator
 }
 ```
 
-#### ⏳ [PENDING] [ExcelOutputGenerator.cs](file:///c:/Sudipto/Antigravity/DynamicPlatform/src/Platform.Engine/Services/OutputGenerators/ExcelOutputGenerator.cs)
+#### ✅ [COMPLETED] [ExcelOutputGenerator.cs](file:///c:/Sudipto/Antigravity/DynamicPlatform/src/Platform.Engine/Services/OutputGenerators/ExcelOutputGenerator.cs)
 
-Implement Excel generation using EPPlus or ClosedXML:
+Implement Excel generation using ClosedXML:
 - Write headers from data properties
-- Write data rows
-- Apply basic styling (header bold, borders)
-- Support for multiple sheets (future)
+- Write data rows with proper type formatting
+- Apply styling (header bold, borders, freeze panes)
+- Auto-fit columns
+- Support for DateTime, decimal, boolean formatting
 
-#### ⏳ [PENDING] [PdfOutputGenerator.cs](file:///c:/Sudipto/Antigravity/DynamicPlatform/src/Platform.Engine/Services/OutputGenerators/PdfOutputGenerator.cs)
+#### ✅ [COMPLETED] [PdfOutputGenerator.cs](file:///c:/Sudipto/Antigravity/DynamicPlatform/src/Platform.Engine/Services/OutputGenerators/PdfOutputGenerator.cs)
 
 Implement PDF generation using QuestPDF:
 - Table layout with headers
 - Pagination support
-- Header/footer with page numbers
-- Logo embedding (optional)
+- Header/footer with page numbers and timestamp
+- Landscape orientation for wide tables
+- Proper data type formatting
 
 #### ✅ [COMPLETED] [CsvOutputGenerator.cs](file:///c:/Sudipto/Antigravity/DynamicPlatform/src/Platform.Engine/Services/OutputGenerators/CsvOutputGenerator.cs)
 
@@ -231,6 +233,13 @@ Implement CSV generation:
 - Simple comma-separated format
 - Proper escaping of quotes and commas
 - UTF-8 encoding with BOM
+
+#### ✅ [COMPLETED] [JsonOutputGenerator.cs](file:///c:/Sudipto/Antigravity/DynamicPlatform/src/Platform.Engine/Services/OutputGenerators/JsonOutputGenerator.cs)
+
+Implement JSON generation:
+- Pretty-printed JSON output
+- CamelCase property naming
+- UTF-8 encoding
 
 ---
 
@@ -507,10 +516,11 @@ dotnet test tests/Platform.Integration.Tests/Platform.Integration.Tests.csproj -
 - ⏳ Add calculated fields support
 - ⏳ Implement Union operations
 
-### Phase 5: Output Generators (Week 7) 🔄 PARTIAL
-- ⏳ Implement Excel generator
-- ⏳ Implement PDF generator
+### Phase 5: Output Generators (Week 7) ✅ COMPLETE
+- ✅ Implement Excel generator (ClosedXML)
+- ✅ Implement PDF generator (QuestPDF)
 - ✅ Implement CSV generator
+- ✅ Implement JSON generator
 - ⏳ Add output format selection to UI
 
 ### Phase 6: Long-Running Jobs with Elsa Workflow (Week 8) ⏳ PENDING
