@@ -144,4 +144,21 @@ public class MetadataLoader
             return null;
         }
     }
+
+    public FormMetadata? LoadFormMetadata(Artifact artifact)
+    {
+        if (artifact.Type != ArtifactType.Form)
+        {
+            throw new ArgumentException("Artifact is not a Form type", nameof(artifact));
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<FormMetadata>(artifact.Content, _options);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

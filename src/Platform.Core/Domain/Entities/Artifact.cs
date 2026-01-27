@@ -13,7 +13,8 @@ public enum ArtifactType
     SecurityConfig = 6,
     UsersConfig = 7,
     CustomObject = 8,
-    Enum = 9
+    Enum = 9,
+    Form = 10
 }
 
 public class Artifact

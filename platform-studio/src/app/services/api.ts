@@ -58,6 +58,18 @@ export class ApiService {
     return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/workflows`, metadata);
   }
 
+  getForms(projectId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/projects/${projectId}/forms`);
+  }
+
+  createForm(projectId: string, metadata: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/forms`, metadata);
+  }
+
+  updateForm(projectId: string, formId: string, metadata: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/projects/${projectId}/forms/${formId}`, metadata);
+  }
+
   request(method: string, path: string, body?: any): Observable<any> {
     return this.http.request(method, `${this.apiUrl}/${path}`, { body });
   }

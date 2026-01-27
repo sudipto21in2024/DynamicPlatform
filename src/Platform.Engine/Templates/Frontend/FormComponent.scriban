@@ -1,0 +1,91 @@
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-{{ name | string.downcase }}-form',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4 p-4 border rounded shadow-sm bg-white">
+      <h2 class="text-xl font-semibold mb-4">{{ name }} Form</h2>
+
+      {{~ for section in sections ~}}
+      <div class="form-section mb-6">
+        <h3 class="text-lg font-medium text-gray-700 mb-2">{{ section.title }}</h3>
+        <div class="{{ layout == 'Horizontal' ? 'grid grid-cols-2 gap-4' : 'flex flex-col space-y-3' }}">
+          {{~ for field_name in section.field_names ~}}
+          {{~ # Find the field object from the master list ~}}
+          {{~ for f in fields ~}}
+          {{~ if f.name == field_name ~}}
+          <div class="form-group">
+            <label for="{{ f.name }}" class="block text-sm font-medium text-gray-700">{{ f.label }}</label>
+            <input type="{{ f.type == 'int' ? 'number' : (f.type == 'datetime' ? 'date' : 'text') }}"
+                   id="{{ f.name }}"
+                   formControlName="{{ f.name }}"
+                   placeholder="{{ f.placeholder }}"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                   [class.border-red-500]="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" />
+            
+            <div *ngIf="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" class="text-red-500 text-xs mt-1">
+              {{ f.label }} is required/invalid.
+            </div>
+          </div>
+          {{~ end ~}}
+          {{~ end ~}}
+          {{~ end ~}}
+        </div>
+      </div>
+      {{~ end ~}}
+
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="button" (click)="onCancel()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" [disabled]="form.invalid" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+          Save
+        </button>
+      </div>
+    </form>
+  `
+})
+export class {{ name }}FormComponent implements OnInit {
+  @Input() initialData: any = null;
+  @Output() save = new EventEmitter<any>();
+  @Output() cancel = new EventEmitter<void>();
+
+  form: FormGroup;
+
+  constructor(private fb: FormBuilder, private http: HttpClient) {
+    this.form = this.fb.group({
+      {{~ for field in fields ~}}
+      {{ field.name }}: [
+        '{{ field.default_value }}', 
+        [
+          {{~ if field.is_required ~}}Validators.required,{{~ end ~}}
+          {{~ if field.validation_pattern ~}}Validators.pattern(/{{ field.validation_pattern }}/),{{~ end ~}}
+        ]
+      ],
+      {{~ end ~}}
+    });
+  }
+
+  ngOnInit() {
+    if (this.initialData) {
+      this.form.patchValue(this.initialData);
+    }
+  }
+
+  onSubmit() {
+    if (this.form.valid) {
+      this.save.emit(this.form.value);
+    } else {
+      this.form.markAllAsTouched();
+    }
+  }
+
+  onCancel() {
+    this.cancel.emit();
+  }
+}

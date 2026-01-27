@@ -1,0 +1,20 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{ root_namespace }}.Domain.Forms
+{
+    public class {{ name }}Form
+    {
+        {{~ for field in fields ~}}
+        [Display(Name = "{{ field.label }}")]
+        {{~ if field.is_required ~}}
+        [Required(ErrorMessage = "{{ field.label }} is required.")]
+        {{~ end ~}}
+        {{~ if field.validation_pattern ~}}
+        [RegularExpression(@"{{ field.validation_pattern }}", ErrorMessage = "Invalid format for {{ field.label }}.")]
+        {{~ end ~}}
+        public {{ field.type | string.downcase == "string" ? "string" : field.type }} {{ field.name }} { get; set; }
+
+        {{~ end ~}}
+    }
+}

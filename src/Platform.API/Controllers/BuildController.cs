@@ -29,6 +29,7 @@ public class BuildController : ControllerBase
     private readonly AngularComponentGenerator _frontendGen;
     private readonly CustomObjectGenerator _customObjectGen;
     private readonly EnumGenerator _enumGen;
+    private readonly FormGenerator _formGen;
     private readonly MetadataLoader _loader;
     private readonly RelationNormalizationService _relationService;
 
@@ -45,6 +46,7 @@ public class BuildController : ControllerBase
         AngularComponentGenerator frontendGen,
         CustomObjectGenerator customObjectGen,
         EnumGenerator enumGen,
+        FormGenerator formGen,
         MetadataLoader loader,
         RelationNormalizationService relationService)
     {
@@ -60,6 +62,7 @@ public class BuildController : ControllerBase
         _frontendGen = frontendGen;
         _customObjectGen = customObjectGen;
         _enumGen = enumGen;
+        _formGen = formGen;
         _loader = loader;
         _relationService = relationService;
     }
@@ -76,6 +79,7 @@ public class BuildController : ControllerBase
         var pages = new List<PageMetadata>();
         var customObjects = new List<CustomObjectMetadata>();
         var enums = new List<EnumMetadata>();
+        var forms = new List<FormMetadata>();
         var project = await _repo.GetProjectByIdAsync(projectId);
         var baseNamespace = project?.Name.Replace(" ", "") ?? "GeneratedApp";
 
@@ -132,6 +136,11 @@ public class BuildController : ControllerBase
                     enums.Add(enumMetadata);
                 }
             }
+            else if (artifact.Type == ArtifactType.Form)
+            {
+                var formMetadata = _loader.LoadFormMetadata(artifact);
+                if (formMetadata != null) forms.Add(formMetadata);
+            }
         }
 
         // 2. Normalize Relations (Handle M:N by creating middle entities)
@@ -160,6 +169,15 @@ public class BuildController : ControllerBase
             {
                 var enumCode = _enumGen.Generate(@enum);
                 AddFileToZip(archive, $"{apiNamespace}/Entities/{@enum.Name}.cs", enumCode);
+            }
+
+            foreach (var form in forms)
+            {
+                var formBackendCode = _formGen.GenerateBackend(form, baseNamespace);
+                AddFileToZip(archive, $"{apiNamespace}/Models/Forms/{form.Name}Form.cs", formBackendCode);
+
+                var formFrontendCode = _formGen.GenerateFrontend(form);
+                AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), formFrontendCode);
             }
 
             // 7. Generate Dashboards/Pages

@@ -153,34 +153,11 @@ public class FormContext
     public Dictionary<string, string> AdditionalData { get; set; } = new();
 }
 
-// Extend FormMetadata to hold the context definition
-public class FormMetadata
+public class CustomObjectMetadata
 {
     public string Name { get; set; } = string.Empty;
-    public string EntityTarget { get; set; } = string.Empty; // The entity this form creates/edits
-    public string Layout { get; set; } = "Vertical"; // Vertical | Horizontal | Inline
-    public List<FormSection> Sections { get; set; } = new();
-    public List<FormField> Fields { get; set; } = new(); // Flat list for quick lookup
-    public FormContext Context { get; set; } = new(); // New context property
+    public string Namespace { get; set; } = string.Empty;
+    public List<FieldMetadata> Fields { get; set; } = new();
 }
-
-public class FormSection
-{
-    public string Title { get; set; } = string.Empty;
-    public List<string> FieldNames { get; set; } = new(); // References FormField.Name
-    public int Order { get; set; } = 0;
-}
-
-public class FormField
-{
-    public string Name { get; set; } = string.Empty;
-    public string Type { get; set; } = "string"; // string, int, datetime, enum, etc.
-    public bool IsRequired { get; set; } = false;
-    public string Label { get; set; } = string.Empty;
-    public string Placeholder { get; set; } = string.Empty;
-    public string Tooltip { get; set; } = string.Empty;
-    public string EnumReference { get; set; } = string.Empty; // If Type == enum
-    public string ValidationPattern { get; set; } = string.Empty; // Regex or other rule
-    public string DefaultValue { get; set; } = string.Empty;
-    public int Order { get; set; } = 0;
-}
+// Form models have been moved to Models/FormMetadata.cs to hold the context definition
+// Form models have been moved to Models/FormMetadata.cs

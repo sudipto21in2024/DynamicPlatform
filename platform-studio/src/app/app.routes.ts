@@ -18,6 +18,14 @@ export const routes: Routes = [
             { path: 'projects/:projectId/pages', component: PageDesigner },
             { path: 'projects/:projectId/enums', component: EnumDesigner },
             { path: 'projects/:projectId/workflows', component: WorkflowDesigner },
+            {
+                path: 'projects/:id/forms',
+                loadComponent: () => import('./pages/form-designer/form-list').then(m => m.FormListComponent)
+            },
+            {
+                path: 'projects/:id/forms/:formId',
+                loadComponent: () => import('./pages/form-designer/form-designer').then(m => m.FormDesignerComponent)
+            },
             { path: '', redirectTo: 'projects', pathMatch: 'full' }
         ]
     }
