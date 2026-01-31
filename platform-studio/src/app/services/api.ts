@@ -85,4 +85,16 @@ export class ApiService {
   request(method: string, path: string, body?: any): Observable<any> {
     return this.http.request(method, `${this.apiUrl}/${path}`, { body });
   }
+
+  getJobs(userId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/data/jobs/user/${userId}`);
+  }
+
+  getJobStatus(jobId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/data/jobs/${jobId}/status`);
+  }
+
+  executeDataOperation(request: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/data/execute`, request);
+  }
 }

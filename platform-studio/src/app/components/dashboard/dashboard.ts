@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { JobProgressComponent } from '../job-progress/job-progress';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, JobProgressComponent],
   template: `
     <div class="flex h-screen bg-slate-900 text-white overflow-hidden">
       <!-- Sidebar -->
@@ -54,6 +55,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
              <span class="font-medium">All Projects</span>
           </div>
           <div class="flex items-center space-x-4">
+            <app-job-progress></app-job-progress>
             <button class="p-2 text-slate-400 hover:text-white transition-colors">
               <span class="material-icons-outlined">notifications</span>
             </button>
