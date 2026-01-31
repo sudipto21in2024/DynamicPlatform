@@ -52,6 +52,9 @@ builder.Services.AddScoped<Platform.Engine.Interfaces.IMetadataDiffService, Plat
 builder.Services.AddScoped<Platform.Engine.Interfaces.ISqlSchemaEvolutionService, Platform.Engine.Services.SqlSchemaEvolutionService>();
 builder.Services.AddScoped<Platform.Engine.Services.MetadataLoader>();
 builder.Services.AddScoped<Platform.Engine.Services.RelationNormalizationService>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.ICompatibilityProvider, Platform.Engine.Services.CompatibilityProvider>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.IMetadataNormalizationService, Platform.Engine.Services.MetadataNormalizationService>();
+builder.Services.AddScoped<Platform.Engine.Services.DataExecution.DataExecutionEngine>();
 
 // AI Services
 builder.Services.AddHttpClient<Platform.API.Services.GeminiService>();

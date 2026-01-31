@@ -16,6 +16,7 @@ public class DataExecutionEngine
     private readonly IEnumerable<IOutputGenerator> _outputGenerators;
     private readonly IWorkflowRuntime _workflowRuntime;
     private readonly IJobTrackingService _jobTracking;
+    private readonly IMetadataNormalizationService _normalizationService;
     private const int QuickJobTimeoutSeconds = 30;
     private const int QuickJobMaxRows = 10000;
     
@@ -23,12 +24,14 @@ public class DataExecutionEngine
         IEnumerable<IDataProvider> providers,
         IEnumerable<IOutputGenerator> outputGenerators,
         IWorkflowRuntime workflowRuntime,
-        IJobTrackingService jobTracking)
+        IJobTrackingService jobTracking,
+        IMetadataNormalizationService normalizationService)
     {
         _providers = providers;
         _outputGenerators = outputGenerators;
         _workflowRuntime = workflowRuntime;
         _jobTracking = jobTracking;
+        _normalizationService = normalizationService;
     }
     
     public async Task<DataResult> ExecuteQuickJobAsync(
@@ -36,8 +39,15 @@ public class DataExecutionEngine
         DataOperationMetadata metadata,
         Dictionary<string, object> parameters,
         ExecutionContext context,
-        string outputFormat = "JSON")
+        string outputFormat = "JSON",
+        Guid? projectId = null)
     {
+        // Apply Metadata Virtualization (Normalization)
+        if (projectId.HasValue)
+        {
+            await _normalizationService.NormalizeAsync(projectId.Value, metadata);
+        }
+
         // Select appropriate provider
         var provider = _providers.FirstOrDefault(p => p.ProviderType == providerType);
         if (provider == null)
@@ -71,6 +81,12 @@ public class DataExecutionEngine
         {
             var result = await provider.ExecuteAsync(metadata, parameters, context, cts.Token);
             
+            // Virtualize Result (Shadow Properties)
+            if (projectId.HasValue && !string.IsNullOrEmpty(metadata.RootEntity))
+            {
+                _normalizationService.VirtualizeResult(projectId.Value, result, metadata.RootEntity);
+            }
+
             // Generate output format if not JSON
             if (outputFormat != "JSON" && result.Success && result.Data != null)
             {
@@ -103,8 +119,15 @@ public class DataExecutionEngine
         Dictionary<string, object> parameters,
         ExecutionContext context,
         string outputFormat = "Excel",
-        string? reportTitle = null)
+        string? reportTitle = null,
+        Guid? projectId = null)
     {
+        // Apply Metadata Virtualization
+        if (projectId.HasValue)
+        {
+             await _normalizationService.NormalizeAsync(projectId.Value, metadata);
+        }
+
         // Select appropriate provider
         var provider = _providers.FirstOrDefault(p => p.ProviderType == providerType);
         if (provider == null)
