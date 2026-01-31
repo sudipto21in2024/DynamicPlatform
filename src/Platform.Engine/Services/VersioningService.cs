@@ -34,7 +34,8 @@ public class VersioningService : IVersioningService
         // Serialize artifacts to JSON
         var content = JsonSerializer.Serialize(artifacts, new JsonSerializerOptions 
         { 
-            WriteIndented = true 
+            WriteIndented = true,
+            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
         });
 
         var hash = ComputeHash(content);
