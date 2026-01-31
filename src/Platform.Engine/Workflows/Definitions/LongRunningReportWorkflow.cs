@@ -66,7 +66,7 @@ public class LongRunningReportWorkflow : WorkflowBase
                 // Step 1: Execute data query
                 new ExecuteDataQueryActivity
                 {
-                    Metadata = new Input<DataOperationMetadata>(metadata),
+                    QueryMetadata = new Input<DataOperationMetadata>(metadata),
                     Parameters = new Input<Dictionary<string, object>>(parameters),
                     Context = new Input<ExecutionContext>(context),
                     ProviderType = new Input<string>(providerType),

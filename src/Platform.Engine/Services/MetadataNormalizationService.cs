@@ -39,7 +39,7 @@ public class MetadataNormalizationService : IMetadataNormalizationService
         // 3. Resolve Filters
         if (metadata.Filters != null)
         {
-            NormalizeFilterGroup(projectId, metadata.Filters, metadata.RootEntity);
+            NormalizeFilterGroup(projectId, metadata.Filters, metadata.RootEntity ?? string.Empty);
         }
 
         // 4. Resolve Aggregations

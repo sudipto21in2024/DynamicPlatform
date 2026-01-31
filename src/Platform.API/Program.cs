@@ -54,6 +54,8 @@ builder.Services.AddScoped<Platform.Engine.Services.MetadataLoader>();
 builder.Services.AddScoped<Platform.Engine.Services.RelationNormalizationService>();
 builder.Services.AddScoped<Platform.Engine.Interfaces.ICompatibilityProvider, Platform.Engine.Services.CompatibilityProvider>();
 builder.Services.AddScoped<Platform.Engine.Interfaces.IMetadataNormalizationService, Platform.Engine.Services.MetadataNormalizationService>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.IConnectivityHub, Platform.Engine.Services.ConnectivityHub>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.IDataProvider, Platform.Engine.Services.DataExecution.ConnectorDataProvider>();
 builder.Services.AddScoped<Platform.Engine.Services.DataExecution.DataExecutionEngine>();
 
 // AI Services

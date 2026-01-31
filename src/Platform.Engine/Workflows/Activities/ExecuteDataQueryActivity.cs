@@ -14,7 +14,7 @@ using Platform.Engine.Models.DataExecution;
 public class ExecuteDataQueryActivity : CodeActivity
 {
     [Input(Description = "The data operation metadata")]
-    public Input<DataOperationMetadata> Metadata { get; set; } = default!;
+    public Input<DataOperationMetadata> QueryMetadata { get; set; } = default!;
     
     [Input(Description = "Query parameters")]
     public Input<Dictionary<string, object>> Parameters { get; set; } = default!;
@@ -56,7 +56,7 @@ public class ExecuteDataQueryActivity : CodeActivity
             throw new InvalidOperationException($"Provider '{providerTypeStr}' not found");
         }
         
-        var metadata = Metadata.Get(context);
+        var metadata = QueryMetadata.Get(context);
         
         // APPLY METADATA VIRTUALIZATION
         if (projectId.HasValue)

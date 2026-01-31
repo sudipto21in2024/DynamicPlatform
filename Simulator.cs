@@ -11,7 +11,9 @@ using Platform.Engine.Interfaces;
 using Platform.Engine.Models;
 using Platform.Engine.Models.Delta;
 using Platform.Engine.Models.DataExecution;
+using Platform.Engine.Models.Connectivity;
 using Platform.Engine.Services;
+using Platform.Engine.Services.DataExecution;
 using Platform.Infrastructure.Data;
 using Platform.Infrastructure.Data.Repositories;
 
@@ -21,156 +23,126 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var sim = new WorkflowE2ESimulator();
+        var sim = new ConnectivityE2ESimulator();
         await sim.RunAsync();
     }
 }
 
-public class WorkflowE2ESimulator
+public class ConnectivityE2ESimulator
 {
     private readonly IServiceProvider _services;
     private Guid _projectId;
 
-    public WorkflowE2ESimulator()
+    public ConnectivityE2ESimulator()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<PlatformDbContext>(options => options.UseInMemoryDatabase("WorkflowE2ESim"));
+        services.AddDbContext<PlatformDbContext>(options => options.UseInMemoryDatabase("ConnectivityE2ESim"));
         services.AddScoped<IArtifactRepository, ArtifactRepository>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IVersioningService, VersioningService>();
         services.AddScoped<IMetadataDiffService, MetadataDiffService>();
         services.AddScoped<ISqlSchemaEvolutionService, MockSqlService>();
-        services.AddScoped<IDataProvider, MockEntityDataProvider>(); 
         services.AddScoped<ICompatibilityProvider, CompatibilityProvider>();
-        services.AddScoped<IMetadataNormalizationService, MetadataNormalizationService>();
+        services.AddScoped<IConnectivityHub, ConnectivityHub>();
+        services.AddScoped<IDataProvider, ConnectorDataProvider>();
+        
+        // Register a "Native" Slack Connector for simulation
+        services.AddScoped<IConnector, SlackConnector>();
+
         _services = services.BuildServiceProvider();
     }
 
     public async Task RunAsync()
     {
-        Console.WriteLine("\n🚀 STARTING COMPLEX RULES & VIRTUALIZATION TEST");
+        Console.WriteLine("\n🚀 STARTING CONNECTIVITY HUB INTEGRATION TEST");
         Console.WriteLine("==================================================");
 
         using var scope = _services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
-        var versioning = scope.ServiceProvider.GetRequiredService<IVersioningService>();
-        var diffService = scope.ServiceProvider.GetRequiredService<IMetadataDiffService>();
+        var hub = scope.ServiceProvider.GetRequiredService<IConnectivityHub>();
         var repo = scope.ServiceProvider.GetRequiredService<IArtifactRepository>();
 
-        var tenant = new Tenant { Name = "Global Health" };
+        // 1. Setup Project
+        var tenant = new Tenant { Name = "Global Logistics" };
         db.Tenants.Add(tenant);
         await db.SaveChangesAsync();
 
-        var project = new Project { Name = "ClinicCare", TenantId = tenant.Id };
+        var project = new Project { Name = "ShipTarget", TenantId = tenant.Id };
         db.Projects.Add(project);
         await db.SaveChangesAsync();
         _projectId = project.Id;
 
-        var doctorId = Guid.NewGuid();
-        var emailFieldId = Guid.NewGuid();
-        var feeFieldId = Guid.NewGuid();
-
-        var doctorMeta = new EntityMetadata
+        // 2. Register a Configuration-Based Connector in Artifacts
+        var slackMeta = new ConnectorMetadata
         {
-            Id = doctorId,
-            Name = "Doctor",
-            Fields = new List<FieldMetadata>
-            {
-                new() { Id = Guid.NewGuid(), Name = "Name", Type = "string" },
-                new() { 
-                    Id = emailFieldId, 
-                    Name = "Email", 
-                    Type = "string",
-                    Rules = new List<ValidationRule> { new() { Type = "Regex", Value = @"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Invalid Email" } }
-                },
-                new() { Id = feeFieldId, Name = "ConsultationFee", Type = "decimal" }
-            }
-        };
-        await repo.AddAsync(new Artifact { ProjectId = _projectId, Name = "Doctor", Type = ArtifactType.Entity, Content = JsonSerializer.Serialize(doctorMeta) });
-
-        var ruleMeta = new BusinessRuleMetadata
-        {
-            Name = "PremiumLogic",
-            TargetEntity = "Doctor",
-            Condition = "ConsultationFee > 500",
-            Action = "MarkAsElite"
-        };
-        await repo.AddAsync(new Artifact { ProjectId = _projectId, Name = "EliteRule", Type = ArtifactType.CustomObject, Content = JsonSerializer.Serialize(ruleMeta) });
-
-        var workflowId = Guid.NewGuid();
-        var workflowMeta = new WorkflowMetadata
-        {
-            Id = workflowId,
-            Name = "FeeValidator",
-            DefinitionJson = @"{
-                ""activities"": [
-                    { ""id"": ""if1"", ""type"": ""Elsa.If"", ""condition"": ""ConsultationFee > 100"" }
-                ]
-            }"
-        };
-        await repo.AddAsync(new Artifact { ProjectId = _projectId, Name = "ValidationWorkflow", Type = ArtifactType.Workflow, Content = JsonSerializer.Serialize(workflowMeta) });
-
-        var v1Snapshot = await versioning.CreateSnapshotAsync(_projectId, "1.0.0", "Admin");
-        v1Snapshot.IsPublished = true;
-        await db.SaveChangesAsync();
-
-        Console.WriteLine("[Step 1] Baseline v1.0.0 Published.");
-
-        doctorMeta.Name = "Practitioner";
-        doctorMeta.Fields.First(f => f.Id == feeFieldId).Name = "Charge";
-        doctorMeta.Fields.First(f => f.Id == emailFieldId).Type = "int"; 
-
-        var drArtifact = (await repo.GetByProjectIdAsync(_projectId)).First(a => a.Name == "Doctor");
-        drArtifact.Content = JsonSerializer.Serialize(doctorMeta);
-        await repo.UpdateAsync(drArtifact);
-
-        var v1_1Snapshot = await versioning.CreateSnapshotAsync(_projectId, "1.1.0", "LeadDev");
-        v1_1Snapshot.IsPublished = true; // Mark as published so it's loaded into history
-        await db.SaveChangesAsync();
-        
-        var migrationPlan = diffService.Compare(v1Snapshot, v1_1Snapshot);
-
-        Console.WriteLine("[Phase 3] Multi-Layer Impact Analysis Report (renames detected via GUIDs)");
-        
-        // --- PHASE 4: VIRTUALIZATION TEST ---
-        Console.WriteLine("\n🚀 [Phase 4] Virtualization Test (Executing legacy query)...");
-        var normalizationService = scope.ServiceProvider.GetRequiredService<IMetadataNormalizationService>();
-        
-        var legacyQuery = new DataOperationMetadata
-        {
-            OperationType = OperationType.Query,
-            RootEntity = "Doctor",
-            Fields = new List<FieldDefinition> { new() { Field = "ConsultationFee" } }
+            Name = "SlackNotifier",
+            Description = "Sends alerts to Slack channels",
+            ConfigProperties = new List<ConnectorProperty> 
+            { 
+                new() { Name = "WebhookUrl", Type = "string", DefaultValue = "https://hooks.slack.com/services/..." } 
+            },
+            Inputs = new List<ConnectorParameter> 
+            { 
+                new() { Name = "Message", Type = "string" },
+                new() { Name = "Channel", Type = "string" }
+            },
+            BusinessLogic = "// Automated logic here"
         };
 
-        Console.WriteLine($"    [Input Query]  Root: {legacyQuery.RootEntity}, Field: {legacyQuery.Fields[0].Field}");
-        
-        await normalizationService.NormalizeAsync(_projectId, legacyQuery);
-        
-        Console.WriteLine($"    [Output Query] Root: {legacyQuery.RootEntity}, Field: {legacyQuery.Fields[0].Field}");
-        
-        if (legacyQuery.Fields[0].Field == "Charge" && legacyQuery.RootEntity == "Practitioner")
+        await repo.AddAsync(new Artifact 
+        { 
+            ProjectId = _projectId, 
+            Name = "SlackNotifier", 
+            Type = ArtifactType.Connector, 
+            Content = JsonSerializer.Serialize(slackMeta) 
+        });
+
+        Console.WriteLine("[Step 1] 'SlackNotifier' Connector Artifact registered.");
+
+        // 3. EXECUTE NATIVE CONNECTOR (Registered in DI)
+        Console.WriteLine("\n[Step 2] Executing NATIVE Connector (SlackConnector)...");
+        var nativeRequest = new ConnectorExecutionRequest
         {
-            Console.WriteLine("    ✅ SUCCESS: Metadata correctly virtualized to current physical schema.");
-        }
+            ConnectorName = "SlackNative",
+            Inputs = new Dictionary<string, object?> { ["Message"] = "System Alert: Engine Hot", ["Channel"] = "#alerts" }
+        };
+
+        var nativeResult = await hub.ExecuteConnectorAsync(_projectId, nativeRequest);
+        if (nativeResult.Success)
+            Console.WriteLine($"   ✅ Native Success: {nativeResult.Data}");
         else
+            Console.WriteLine($"   ❌ Native Failure: {nativeResult.ErrorMessage}");
+
+        // 4. EXECUTE ARTIFACT CONNECTOR (Configuration Driven)
+        Console.WriteLine("\n[Step 3] Executing ARTIFACT Connector (SlackNotifier)...");
+        var artifactRequest = new ConnectorExecutionRequest
         {
-            Console.WriteLine("    ❌ FAILURE: Metadata virtualization failed.");
-        }
+            ConnectorName = "SlackNotifier",
+            Inputs = new Dictionary<string, object?> { ["Message"] = "Shipment Delayed", ["Channel"] = "#logistic-updates" }
+        };
+
+        var artifactResult = await hub.ExecuteConnectorAsync(_projectId, artifactRequest);
+        if (artifactResult.Success)
+            Console.WriteLine($"   ✅ Artifact Success: {artifactResult.Data}");
+        else
+            Console.WriteLine($"   ❌ Artifact Failure: {artifactResult.ErrorMessage}");
 
         Console.WriteLine("\n==================================================");
-        Console.WriteLine("🏆 VIRTUALIZATION TEST COMPLETED SUCCESSFULLY");
+        Console.WriteLine("🏆 CONNECTIVITY HUB TEST COMPLETED SUCCESSFULLY");
         Console.WriteLine("==================================================\n");
     }
 }
 
-public class MockEntityDataProvider : IDataProvider
+public class SlackConnector : IConnector
 {
-    public string ProviderType => "Entity";
-    public Task<DataResult> ExecuteAsync(DataOperationMetadata metadata, Dictionary<string, object> parameters, ExecutionContext context, CancellationToken ct) 
-        => Task.FromResult(new DataResult { Success = true });
-    public Task<long> EstimateRowCountAsync(DataOperationMetadata metadata, Dictionary<string, object> parameters, ExecutionContext context) => Task.FromResult(0L);
-    public Task<ValidationResult> ValidateAsync(DataOperationMetadata metadata) => Task.FromResult(new ValidationResult { IsValid = true });
+    public string Name => "SlackNative";
+
+    public Task<object?> ExecuteAsync(IDictionary<string, object?> inputs)
+    {
+        var msg = inputs["Message"];
+        var channel = inputs["Channel"];
+        return Task.FromResult<object?>($"[SLACK API] Posted '{msg}' to {channel}");
+    }
 }
 
 public class MockSqlService : ISqlSchemaEvolutionService
