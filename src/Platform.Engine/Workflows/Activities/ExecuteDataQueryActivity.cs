@@ -24,6 +24,9 @@ public class ExecuteDataQueryActivity : CodeActivity
     
     [Input(Description = "Provider type (Entity, API, Workflow, Static)", DefaultValue = "Entity")]
     public Input<string> ProviderType { get; set; } = new("Entity");
+
+    [Input(Description = "The Project ID for metadata virtualization")]
+    public Input<Guid?> ProjectId { get; set; } = default!;
     
     [Input(Description = "Chunk size for processing", DefaultValue = 1000)]
     public Input<int> ChunkSize { get; set; } = new(1000);
@@ -40,9 +43,11 @@ public class ExecuteDataQueryActivity : CodeActivity
     protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
     {
         var providers = context.GetRequiredService<IEnumerable<IDataProvider>>();
+        var normalizationService = context.GetRequiredService<IMetadataNormalizationService>();
         
         var startTime = DateTime.UtcNow;
         var providerTypeStr = ProviderType.Get(context);
+        var projectId = ProjectId.Get(context);
         
         // Get the appropriate provider
         var provider = providers.FirstOrDefault(p => p.ProviderType == providerTypeStr);
@@ -52,6 +57,13 @@ public class ExecuteDataQueryActivity : CodeActivity
         }
         
         var metadata = Metadata.Get(context);
+        
+        // APPLY METADATA VIRTUALIZATION
+        if (projectId.HasValue)
+        {
+            await normalizationService.NormalizeAsync(projectId.Value, metadata);
+        }
+
         var parameters = Parameters.Get(context) ?? new Dictionary<string, object>();
         var execContext = Context.Get(context);
         var chunkSize = ChunkSize.Get(context);
@@ -83,6 +95,12 @@ public class ExecuteDataQueryActivity : CodeActivity
                 execContext,
                 context.CancellationToken
             );
+
+            // VIRTUALIZE RESULT (SHADOW PROPERTIES)
+            if (projectId.HasValue && !string.IsNullOrEmpty(metadata.RootEntity))
+            {
+                normalizationService.VirtualizeResult(projectId.Value, result, metadata.RootEntity);
+            }
             
             if (!result.Success || result.Data == null)
             {
