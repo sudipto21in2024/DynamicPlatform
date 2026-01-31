@@ -191,3 +191,14 @@ public class CustomObjectMetadata
 }
 // Form models have been moved to Models/FormMetadata.cs to hold the context definition
 // Form models have been moved to Models/FormMetadata.cs
+
+public class BusinessRuleMetadata
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string TargetEntity { get; set; } = string.Empty;
+    public string Trigger { get; set; } = "BeforeSave"; // BeforeSave, AfterSave
+    public string Condition { get; set; } = string.Empty; // e.g., "ConsultationFee > 1000"
+    public string Action { get; set; } = string.Empty; // e.g., "Set IsPremium = true"
+}
