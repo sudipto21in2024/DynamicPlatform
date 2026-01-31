@@ -15,6 +15,7 @@ public class PlatformDbContext : DbContext
     public DbSet<ReportDefinition> ReportDefinitions { get; set; }
     public DbSet<JobInstance> JobInstances { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<ProjectSnapshot> ProjectSnapshots { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,17 @@ public class PlatformDbContext : DbContext
 
         modelBuilder.Entity<Artifact>()
             .HasIndex(a => new { a.ProjectId, a.Name })
+            .IsUnique();
+
+        // Snapshot -> Project
+        modelBuilder.Entity<ProjectSnapshot>()
+            .HasOne(s => s.Project)
+            .WithMany()
+            .HasForeignKey(s => s.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProjectSnapshot>()
+            .HasIndex(s => new { s.ProjectId, s.Version })
             .IsUnique();
     }
 }

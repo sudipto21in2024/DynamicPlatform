@@ -4,6 +4,7 @@ namespace Platform.Engine.Models;
 
 public class EntityMetadata
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Namespace { get; set; } = string.Empty;
     public double X { get; set; }
@@ -22,6 +23,7 @@ public class EntityEventConfig
 
 public class FieldMetadata
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = "string"; // "string", "int", "guid"
     public bool IsRequired { get; set; }
@@ -44,6 +46,7 @@ public class FieldMetadata
 
 public class EnumMetadata
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Namespace { get; set; } = string.Empty;
     public List<EnumValue> Values { get; set; } = new();
@@ -51,6 +54,7 @@ public class EnumMetadata
 
 public class EnumValue
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public int Value { get; set; }
 }
@@ -71,6 +75,7 @@ public enum RelationType
 
 public class RelationMetadata
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string TargetEntity { get; set; } = string.Empty;
     public string ForeignKeyName { get; set; } = string.Empty; // Used for OneToMany/ManyToOne
     public string NavPropName { get; set; } = string.Empty;
@@ -83,6 +88,7 @@ public class RelationMetadata
 
 public class PageMetadata
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Route { get; set; } = string.Empty;
     public List<string> AllowedRoles { get; set; } = new();
@@ -91,7 +97,7 @@ public class PageMetadata
 
 public class WidgetMetadata
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Type { get; set; } = "StatCard"; 
     public WidgetLayout Layout { get; set; } = new();
     
@@ -178,6 +184,7 @@ public class FormContext
 
 public class CustomObjectMetadata
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Namespace { get; set; } = string.Empty;
     public List<FieldMetadata> Fields { get; set; } = new();

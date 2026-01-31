@@ -35,6 +35,7 @@ builder.Services.AddDbContext<PlatformDbContext>(options =>
 
 // Repositories
 builder.Services.AddScoped<IArtifactRepository, ArtifactRepository>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 
 // Engine Services
 builder.Services.AddScoped<EntityGenerator>();
@@ -46,6 +47,9 @@ builder.Services.AddScoped<ConnectorGenerator>();
 builder.Services.AddScoped<SecurityGenerator>();
 builder.Services.AddScoped<FrontendGenerator>();
 builder.Services.AddScoped<AngularComponentGenerator>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.IVersioningService, Platform.Engine.Services.VersioningService>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.IMetadataDiffService, Platform.Engine.Services.MetadataDiffService>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.ISqlSchemaEvolutionService, Platform.Engine.Services.SqlSchemaEvolutionService>();
 builder.Services.AddScoped<Platform.Engine.Services.MetadataLoader>();
 builder.Services.AddScoped<Platform.Engine.Services.RelationNormalizationService>();
 

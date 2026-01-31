@@ -13,6 +13,7 @@
     <PackageReference Include="Elsa.Workflows.Runtime" Version="3.2.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="QuestPDF" Version="2025.12.3" />
     <PackageReference Include="Scriban" Version="6.5.2" />
   </ItemGroup>
