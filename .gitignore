@@ -42,3 +42,8 @@ entities_v2.json
 project_data.json
 DemoBuild/
 DemoBuild_v*/
+
+# Gemini / MCP Configuration
+mcp_servers.json
+GEMINI.md
+.gemini/

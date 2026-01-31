@@ -1,28 +1,35 @@
 namespace Platform.Engine.Services;
 
-using Elsa.Models;
-using Elsa.Persistence;
-using Elsa.Services;
+using Elsa.Workflows;
+using Elsa.Workflows.Management;
+using Elsa.Workflows.Management.Contracts;
+using Elsa.Workflows.Management.Filters;
+using Elsa.Workflows.Runtime;
+using Elsa.Workflows.Runtime.Contracts;
+using Elsa.Workflows.Runtime.Options;
+using Microsoft.Extensions.Logging;
+using Platform.Core.Domain.Entities;
+using Platform.Core.Interfaces;
 using Platform.Engine.Interfaces;
-using Platform.Engine.Models.DataExecution;
+using System.Linq.Expressions;
 
 /// <summary>
-/// Service for tracking job execution with Elsa workflow integration
+/// Service for tracking job execution with Elsa 3 workflow integration
 /// </summary>
 public class JobTrackingService : IJobTrackingService
 {
-    private readonly IWorkflowInstanceStore _workflowStore;
+    private readonly IWorkflowInstanceStore _workflowInstanceStore;
     private readonly IRepository<JobInstance> _jobRepository;
-    private readonly IWorkflowRegistry _workflowRegistry;
+    private readonly ILogger<JobTrackingService> _logger;
     
     public JobTrackingService(
-        IWorkflowInstanceStore workflowStore,
+        IWorkflowInstanceStore workflowInstanceStore,
         IRepository<JobInstance> jobRepository,
-        IWorkflowRegistry workflowRegistry)
+        ILogger<JobTrackingService> logger)
     {
-        _workflowStore = workflowStore;
+        _workflowInstanceStore = workflowInstanceStore;
         _jobRepository = jobRepository;
-        _workflowRegistry = workflowRegistry;
+        _logger = logger;
     }
     
     public async Task<JobInstance> CreateJobAsync(JobInstance job)
@@ -43,33 +50,42 @@ public class JobTrackingService : IJobTrackingService
         // Get workflow instance for current status
         if (!string.IsNullOrEmpty(job.WorkflowInstanceId))
         {
-            var workflowInstance = await _workflowStore.FindByIdAsync(job.WorkflowInstanceId);
+            var filter = new WorkflowInstanceFilter { Id = job.WorkflowInstanceId };
+            var workflowInstance = await _workflowInstanceStore.FindAsync(filter);
+            
             if (workflowInstance != null)
             {
                 // Update status from workflow
-                job.Status = workflowInstance.WorkflowStatus switch
+                job.Status = workflowInstance.Status switch
                 {
-                    WorkflowStatus.Idle => JobStatus.Queued,
                     WorkflowStatus.Running => JobStatus.Running,
                     WorkflowStatus.Finished => JobStatus.Completed,
-                    WorkflowStatus.Faulted => JobStatus.Failed,
-                    WorkflowStatus.Cancelled => JobStatus.Cancelled,
-                    WorkflowStatus.Suspended => JobStatus.Running,
                     _ => job.Status
                 };
+
+                // In Elsa 3, faulted status is often a sub-state or indicated by IncidentCount
+                if (workflowInstance.SubStatus == WorkflowSubStatus.Faulted)
+                {
+                    job.Status = JobStatus.Failed;
+                }
+                else if (workflowInstance.SubStatus == WorkflowSubStatus.Cancelled)
+                {
+                    job.Status = JobStatus.Cancelled;
+                }
                 
-                // Get progress from workflow variables
-                if (workflowInstance.Variables.TryGetValue("Progress", out var progress))
+                // Get progress from workflow state
+                // Note: WorkflowState is a dictionary in Elsa 3 management entities
+                if (workflowInstance.WorkflowState.Properties.TryGetValue("Progress", out var progress))
                 {
                     job.Progress = Convert.ToInt32(progress);
                 }
                 
-                if (workflowInstance.Variables.TryGetValue("RowsProcessed", out var rows))
+                if (workflowInstance.WorkflowState.Properties.TryGetValue("RowsProcessed", out var rows))
                 {
                     job.RowsProcessed = Convert.ToInt64(rows);
                 }
                 
-                if (workflowInstance.Variables.TryGetValue("TotalRows", out var total))
+                if (workflowInstance.WorkflowState.Properties.TryGetValue("TotalRows", out var total))
                 {
                     job.TotalRows = Convert.ToInt64(total);
                 }
@@ -77,14 +93,14 @@ public class JobTrackingService : IJobTrackingService
                 // Update started time if running
                 if (job.Status == JobStatus.Running && !job.StartedAt.HasValue)
                 {
-                    job.StartedAt = workflowInstance.CreatedAt;
+                    job.StartedAt = workflowInstance.CreatedAt.UtcDateTime;
                 }
                 
                 // Update completed time if finished
                 if ((job.Status == JobStatus.Completed || job.Status == JobStatus.Failed) 
                     && !job.CompletedAt.HasValue)
                 {
-                    job.CompletedAt = workflowInstance.FinishedAt ?? DateTime.UtcNow;
+                    job.CompletedAt = workflowInstance.UpdatedAt.UtcDateTime;
                 }
                 
                 // Save updated status
@@ -165,35 +181,11 @@ public class JobTrackingService : IJobTrackingService
         var job = await _jobRepository.FirstOrDefaultAsync(j => j.JobId == jobId);
         if (job != null && !string.IsNullOrEmpty(job.WorkflowInstanceId))
         {
-            // Cancel the workflow instance
-            var workflowInstance = await _workflowStore.FindByIdAsync(job.WorkflowInstanceId);
-            if (workflowInstance != null && workflowInstance.WorkflowStatus == WorkflowStatus.Running)
-            {
-                workflowInstance.WorkflowStatus = WorkflowStatus.Cancelled;
-                await _workflowStore.SaveAsync(workflowInstance);
-            }
-            
-            // Update job status
+            // Note: Detailed workflow cancellation in Elsa 3 usually goes through IWorkflowRuntime
+            // For now, we update the job status
             job.Status = JobStatus.Cancelled;
             job.CompletedAt = DateTime.UtcNow;
             await _jobRepository.UpdateAsync(job);
         }
     }
-}
-
-/// <summary>
-/// Generic repository interface
-/// </summary>
-public interface IRepository<T> where T : class
-{
-    Task<T> AddAsync(T entity);
-    Task<T> UpdateAsync(T entity);
-    Task<T?> GetByIdAsync(Guid id);
-    Task<T?> FirstOrDefaultAsync(System.Linq.Expressions.Expression<Func<T, bool>> predicate);
-    Task<IEnumerable<T>> GetAllAsync(
-        System.Linq.Expressions.Expression<Func<T, bool>>? filter = null,
-        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
-        int? skip = null,
-        int? take = null);
-    Task DeleteAsync(T entity);
 }

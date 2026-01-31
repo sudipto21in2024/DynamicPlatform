@@ -2,7 +2,10 @@ namespace Platform.Engine.Services.DataExecution;
 
 using Platform.Engine.Interfaces;
 using Platform.Engine.Models.DataExecution;
-using Elsa.Services;
+using Platform.Core.Domain.Entities;
+using Elsa.Workflows.Runtime;
+using Elsa.Workflows.Runtime.Contracts;
+using Elsa.Workflows.Runtime.Parameters;
 
 /// <summary>
 /// Orchestrates data operation execution across different providers
@@ -11,7 +14,7 @@ public class DataExecutionEngine
 {
     private readonly IEnumerable<IDataProvider> _providers;
     private readonly IEnumerable<IOutputGenerator> _outputGenerators;
-    private readonly IWorkflowRunner _workflowRunner;
+    private readonly IWorkflowRuntime _workflowRuntime;
     private readonly IJobTrackingService _jobTracking;
     private const int QuickJobTimeoutSeconds = 30;
     private const int QuickJobMaxRows = 10000;
@@ -19,12 +22,12 @@ public class DataExecutionEngine
     public DataExecutionEngine(
         IEnumerable<IDataProvider> providers,
         IEnumerable<IOutputGenerator> outputGenerators,
-        IWorkflowRunner workflowRunner,
+        IWorkflowRuntime workflowRuntime,
         IJobTrackingService jobTracking)
     {
         _providers = providers;
         _outputGenerators = outputGenerators;
-        _workflowRunner = workflowRunner;
+        _workflowRuntime = workflowRuntime;
         _jobTracking = jobTracking;
     }
     
@@ -121,7 +124,7 @@ public class DataExecutionEngine
         // Create job ID
         var jobId = Guid.NewGuid().ToString();
         
-        // Start Elsa workflow
+        // Start Elsa 3 workflow
         var workflowInput = new Dictionary<string, object>
         {
             ["JobId"] = jobId,
@@ -137,10 +140,12 @@ public class DataExecutionEngine
             ["IncludeHeaders"] = true
         };
         
-        var workflowInstance = await _workflowRunner.RunWorkflowAsync(
+        var result = await _workflowRuntime.StartWorkflowAsync(
             "LongRunningReportWorkflow",
-            input: workflowInput
-        );
+            new StartWorkflowRuntimeParams
+            {
+                Input = workflowInput
+            });
         
         // Track job
         await _jobTracking.CreateJobAsync(new JobInstance
@@ -149,7 +154,7 @@ public class DataExecutionEngine
             UserId = context.UserId,
             Status = JobStatus.Queued,
             CreatedAt = DateTime.UtcNow,
-            WorkflowInstanceId = workflowInstance.Id,
+            WorkflowInstanceId = result.WorkflowInstanceId,
             ReportTitle = reportTitle,
             OutputFormat = outputFormat
         });

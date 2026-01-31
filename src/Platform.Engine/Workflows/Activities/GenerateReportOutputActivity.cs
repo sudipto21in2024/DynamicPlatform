@@ -1,77 +1,70 @@
 namespace Platform.Engine.Workflows.Activities;
 
-using Elsa.ActivityResults;
-using Elsa.Attributes;
-using Elsa.Services;
+using Elsa.Extensions;
+using Elsa.Workflows;
+using Elsa.Workflows.Attributes;
+using Elsa.Workflows.Models;
 using Platform.Engine.Interfaces;
 using Platform.Engine.Models.DataExecution;
 
 /// <summary>
 /// Elsa activity for generating report output in various formats
 /// </summary>
-[Activity(
-    Category = "Data Operations",
-    DisplayName = "Generate Report Output",
-    Description = "Generates report in Excel, PDF, CSV, or JSON format"
-)]
-public class GenerateReportOutputActivity : Activity
+[Activity("Data Operations", "Generate Report Output", Description = "Generates report in Excel, PDF, CSV, or JSON format")]
+public class GenerateReportOutputActivity : CodeActivity
 {
-    private readonly IEnumerable<IOutputGenerator> _generators;
+    [Input(Description = "Data to generate report from")]
+    public Input<List<object>> Data { get; set; } = default!;
     
-    [ActivityInput(Hint = "Data to generate report from")]
-    public List<object> Data { get; set; } = new();
+    [Input(Description = "Output format (Excel, PDF, CSV, JSON)", DefaultValue = "Excel")]
+    public Input<string> OutputFormat { get; set; } = new("Excel");
     
-    [ActivityInput(Hint = "Output format (Excel, PDF, CSV, JSON)", DefaultValue = "Excel")]
-    public string OutputFormat { get; set; } = "Excel";
+    [Input(Description = "Report title")]
+    public Input<string?> Title { get; set; } = default!;
     
-    [ActivityInput(Hint = "Report title")]
-    public string? Title { get; set; }
+    [Input(Description = "Include headers", DefaultValue = true)]
+    public Input<bool> IncludeHeaders { get; set; } = new(true);
     
-    [ActivityInput(Hint = "Include headers", DefaultValue = true)]
-    public bool IncludeHeaders { get; set; } = true;
+    [Output]
+    public Output<Stream> OutputFile { get; set; } = default!;
     
-    [ActivityOutput]
-    public Stream OutputFile { get; set; } = null!;
+    [Output]
+    public Output<string> FileName { get; set; } = default!;
     
-    [ActivityOutput]
-    public string FileName { get; set; } = string.Empty;
+    [Output]
+    public Output<long> FileSizeBytes { get; set; } = default!;
     
-    [ActivityOutput]
-    public long FileSizeBytes { get; set; }
-    
-    public GenerateReportOutputActivity(IEnumerable<IOutputGenerator> generators)
+    protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
     {
-        _generators = generators;
-    }
-    
-    protected override async ValueTask<IActivityExecutionResult> OnExecuteAsync(
-        ActivityExecutionContext context)
-    {
-        var generator = _generators.FirstOrDefault(g => 
-            g.Format.Equals(OutputFormat, StringComparison.OrdinalIgnoreCase));
+        var generators = context.GetRequiredService<IEnumerable<IOutputGenerator>>();
+        
+        var outputFormat = OutputFormat.Get(context);
+        var generator = generators.FirstOrDefault(g => 
+            g.Format.Equals(outputFormat, StringComparison.OrdinalIgnoreCase));
         
         if (generator == null)
         {
             throw new InvalidOperationException(
-                $"No generator found for format: {OutputFormat}. " +
-                $"Available formats: {string.Join(", ", _generators.Select(g => g.Format))}"
+                $"No generator found for format: {outputFormat}. " +
+                $"Available formats: {string.Join(", ", generators.Select(g => g.Format))}"
             );
         }
         
         var options = new OutputOptions
         {
-            Format = OutputFormat,
-            Title = Title,
-            IncludeHeaders = IncludeHeaders
+            Format = outputFormat,
+            Title = Title.Get(context),
+            IncludeHeaders = IncludeHeaders.Get(context)
         };
         
-        OutputFile = await generator.GenerateAsync(Data, options, context.CancellationToken);
+        var data = Data.Get(context) ?? new List<object>();
+        var outputFile = await generator.GenerateAsync(data, options, context.CancellationToken);
         
         // Get file size
-        FileSizeBytes = OutputFile.Length;
+        var fileSizeBytes = outputFile.Length;
         
         // Generate filename
-        var extension = OutputFormat.ToLower() switch
+        var extension = outputFormat.ToLower() switch
         {
             "excel" => "xlsx",
             "pdf" => "pdf",
@@ -80,15 +73,18 @@ public class GenerateReportOutputActivity : Activity
             _ => "bin"
         };
         
-        var sanitizedTitle = Title != null 
-            ? string.Join("_", Title.Split(Path.GetInvalidFileNameChars()))
+        var title = Title.Get(context);
+        var sanitizedTitle = title != null 
+            ? string.Join("_", title.Split(Path.GetInvalidFileNameChars()))
             : "report";
         
-        FileName = $"{sanitizedTitle}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{extension}";
+        var fileName = $"{sanitizedTitle}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{extension}";
         
-        // Reset stream position for next activity
-        OutputFile.Position = 0;
+        // Reset stream position for next activity (important!)
+        outputFile.Position = 0;
         
-        return Done();
+        OutputFile.Set(context, outputFile);
+        FileName.Set(context, fileName);
+        FileSizeBytes.Set(context, fileSizeBytes);
     }
 }

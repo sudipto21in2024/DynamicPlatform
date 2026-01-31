@@ -3,7 +3,7 @@ namespace Platform.Engine.Services;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Options;
-using Platform.Engine.Workflows.Activities;
+using Platform.Engine.Interfaces;
 
 /// <summary>
 /// Azure Blob Storage implementation

@@ -1,120 +1,85 @@
 namespace Platform.Engine.Workflows.Activities;
 
-using Elsa.ActivityResults;
-using Elsa.Attributes;
-using Elsa.Services;
+using Elsa.Extensions;
+using Elsa.Workflows;
+using Elsa.Workflows.Attributes;
+using Elsa.Workflows.Models;
+using Platform.Core.Domain.Entities;
+using Platform.Engine.Interfaces;
 
 /// <summary>
 /// Elsa activity for notifying users about job completion
 /// </summary>
-[Activity(
-    Category = "Data Operations",
-    DisplayName = "Notify User",
-    Description = "Sends notification about job completion via email and SignalR"
-)]
-public class NotifyUserActivity : Activity
+[Activity("Data Operations", "Notify User", Description = "Sends notification about job completion via email and SignalR")]
+public class NotifyUserActivity : CodeActivity
 {
-    private readonly INotificationService _notificationService;
+    [Input(Description = "User ID to notify")]
+    public Input<string> UserId { get; set; } = default!;
     
-    [ActivityInput(Hint = "User ID to notify")]
-    public string UserId { get; set; } = string.Empty;
+    [Input(Description = "Job ID")]
+    public Input<string> JobId { get; set; } = default!;
     
-    [ActivityInput(Hint = "Job ID")]
-    public string JobId { get; set; } = string.Empty;
+    [Input(Description = "Download URL")]
+    public Input<string?> DownloadUrl { get; set; } = default!;
     
-    [ActivityInput(Hint = "Download URL")]
-    public string? DownloadUrl { get; set; }
+    [Input(Description = "Job status (Completed/Failed)", DefaultValue = "Completed")]
+    public Input<string> Status { get; set; } = new("Completed");
     
-    [ActivityInput(Hint = "Job status (Completed/Failed)", DefaultValue = "Completed")]
-    public string Status { get; set; } = "Completed";
+    [Input(Description = "Error message (if failed)")]
+    public Input<string?> ErrorMessage { get; set; } = default!;
     
-    [ActivityInput(Hint = "Error message (if failed)")]
-    public string? ErrorMessage { get; set; }
+    [Input(Description = "Report title")]
+    public Input<string?> ReportTitle { get; set; } = default!;
     
-    [ActivityInput(Hint = "Report title")]
-    public string? ReportTitle { get; set; }
+    [Input(Description = "Total rows processed")]
+    public Input<long> TotalRows { get; set; } = default!;
     
-    [ActivityInput(Hint = "Total rows processed")]
-    public long TotalRows { get; set; }
-    
-    public NotifyUserActivity(INotificationService notificationService)
+    protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
     {
-        _notificationService = notificationService;
-    }
-    
-    protected override async ValueTask<IActivityExecutionResult> OnExecuteAsync(
-        ActivityExecutionContext context)
-    {
-        var isSuccess = Status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+        var notificationService = context.GetRequiredService<INotificationService>();
+        
+        var userId = UserId.Get(context);
+        var jobId = JobId.Get(context);
+        var status = Status.Get(context);
+        var downloadUrl = DownloadUrl.Get(context);
+        var errorMessage = ErrorMessage.Get(context);
+        var reportTitle = ReportTitle.Get(context);
+        var totalRows = TotalRows.Get(context);
+        
+        var isSuccess = status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
         
         var notification = new Notification
         {
-            UserId = UserId,
+            UserId = userId,
             Title = isSuccess 
                 ? "Report Ready for Download" 
                 : "Report Generation Failed",
             Message = isSuccess
-                ? $"Your report '{ReportTitle ?? "Report"}' is ready with {TotalRows:N0} rows. Click to download."
-                : $"Report generation failed: {ErrorMessage}",
+                ? $"Your report '{reportTitle ?? "Report"}' is ready with {totalRows:N0} rows. Click to download."
+                : $"Report generation failed: {errorMessage}",
             Type = isSuccess ? NotificationType.Success : NotificationType.Error,
-            ActionUrl = DownloadUrl,
+            ActionUrl = downloadUrl,
             CreatedAt = DateTime.UtcNow,
-            Data = new Dictionary<string, object>
+            DataJson = System.Text.Json.JsonSerializer.Serialize(new 
             {
-                ["JobId"] = JobId,
-                ["Status"] = Status,
-                ["TotalRows"] = TotalRows
-            }
+                JobId = jobId,
+                Status = status,
+                TotalRows = totalRows
+            })
         };
         
         // Send notification
-        await _notificationService.SendAsync(notification);
+        await notificationService.SendAsync(notification);
         
         // Send real-time SignalR notification
-        await _notificationService.SendSignalRAsync(UserId, "JobCompleted", new
+        await notificationService.SendSignalRAsync(userId, "JobCompleted", new
         {
-            JobId,
-            Status,
-            DownloadUrl,
-            ErrorMessage,
-            ReportTitle,
-            TotalRows
+            JobId = jobId,
+            Status = status,
+            DownloadUrl = downloadUrl,
+            ErrorMessage = errorMessage,
+            ReportTitle = reportTitle,
+            TotalRows = totalRows
         });
-        
-        return Done();
     }
-}
-
-/// <summary>
-/// Notification model
-/// </summary>
-public class Notification
-{
-    public string UserId { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public NotificationType Type { get; set; }
-    public string? ActionUrl { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public Dictionary<string, object>? Data { get; set; }
-}
-
-/// <summary>
-/// Notification type enum
-/// </summary>
-public enum NotificationType
-{
-    Info,
-    Success,
-    Warning,
-    Error
-}
-
-/// <summary>
-/// Interface for notification service
-/// </summary>
-public interface INotificationService
-{
-    Task SendAsync(Notification notification);
-    Task SendSignalRAsync(string userId, string eventName, object data);
 }

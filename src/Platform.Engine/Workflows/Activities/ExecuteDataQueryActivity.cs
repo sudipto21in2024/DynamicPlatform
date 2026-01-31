@@ -1,88 +1,86 @@
 namespace Platform.Engine.Workflows.Activities;
 
-using Elsa.ActivityResults;
-using Elsa.Attributes;
-using Elsa.Services;
+using Elsa.Extensions;
+using Elsa.Workflows;
+using Elsa.Workflows.Attributes;
+using Elsa.Workflows.Models;
 using Platform.Engine.Interfaces;
 using Platform.Engine.Models.DataExecution;
 
 /// <summary>
 /// Elsa activity for executing data queries with chunked processing
 /// </summary>
-[Activity(
-    Category = "Data Operations",
-    DisplayName = "Execute Data Query",
-    Description = "Executes a data query with chunked processing for large datasets"
-)]
-public class ExecuteDataQueryActivity : Activity
+[Activity("Data Operations", "Execute Data Query", Description = "Executes a data query with chunked processing for large datasets")]
+public class ExecuteDataQueryActivity : CodeActivity
 {
-    private readonly IEnumerable<IDataProvider> _providers;
+    [Input(Description = "The data operation metadata")]
+    public Input<DataOperationMetadata> Metadata { get; set; } = default!;
     
-    [ActivityInput(Hint = "The data operation metadata")]
-    public DataOperationMetadata Metadata { get; set; } = null!;
+    [Input(Description = "Query parameters")]
+    public Input<Dictionary<string, object>> Parameters { get; set; } = default!;
     
-    [ActivityInput(Hint = "Query parameters")]
-    public Dictionary<string, object> Parameters { get; set; } = new();
+    [Input(Description = "Execution context")]
+    public Input<ExecutionContext> Context { get; set; } = default!;
     
-    [ActivityInput(Hint = "Execution context")]
-    public ExecutionContext Context { get; set; } = null!;
+    [Input(Description = "Provider type (Entity, API, Workflow, Static)", DefaultValue = "Entity")]
+    public Input<string> ProviderType { get; set; } = new("Entity");
     
-    [ActivityInput(Hint = "Provider type (Entity, API, Workflow, Static)", DefaultValue = "Entity")]
-    public string ProviderType { get; set; } = "Entity";
+    [Input(Description = "Chunk size for processing", DefaultValue = 1000)]
+    public Input<int> ChunkSize { get; set; } = new(1000);
     
-    [ActivityInput(Hint = "Chunk size for processing", DefaultValue = 1000)]
-    public int ChunkSize { get; set; } = 1000;
+    [Output]
+    public Output<List<object>> ResultData { get; set; } = default!;
     
-    [ActivityOutput]
-    public List<object> ResultData { get; set; } = new();
+    [Output]
+    public Output<long> TotalRows { get; set; } = default!;
     
-    [ActivityOutput]
-    public long TotalRows { get; set; }
+    [Output]
+    public Output<double> ExecutionTimeSeconds { get; set; } = default!;
     
-    [ActivityOutput]
-    public double ExecutionTimeSeconds { get; set; }
-    
-    public ExecuteDataQueryActivity(IEnumerable<IDataProvider> providers)
+    protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
     {
-        _providers = providers;
-    }
-    
-    protected override async ValueTask<IActivityExecutionResult> OnExecuteAsync(
-        ActivityExecutionContext context)
-    {
+        var providers = context.GetRequiredService<IEnumerable<IDataProvider>>();
+        
         var startTime = DateTime.UtcNow;
+        var providerTypeStr = ProviderType.Get(context);
         
         // Get the appropriate provider
-        var provider = _providers.FirstOrDefault(p => p.ProviderType == ProviderType);
+        var provider = providers.FirstOrDefault(p => p.ProviderType == providerTypeStr);
         if (provider == null)
         {
-            throw new InvalidOperationException($"Provider '{ProviderType}' not found");
+            throw new InvalidOperationException($"Provider '{providerTypeStr}' not found");
         }
+        
+        var metadata = Metadata.Get(context);
+        var parameters = Parameters.Get(context) ?? new Dictionary<string, object>();
+        var execContext = Context.Get(context);
+        var chunkSize = ChunkSize.Get(context);
         
         var allData = new List<object>();
         var offset = 0;
         
         // Estimate total rows
-        TotalRows = await provider.EstimateRowCountAsync(Metadata, Parameters, Context);
+        var totalRows = await provider.EstimateRowCountAsync(metadata, parameters, execContext);
+        TotalRows.Set(context, totalRows);
         
-        // Set initial progress
-        context.WorkflowExecutionContext.SetVariable("Progress", 0);
-        context.WorkflowExecutionContext.SetVariable("TotalRows", TotalRows);
-        context.WorkflowExecutionContext.SetVariable("RowsProcessed", 0);
+        // Set initial progress in workflow variables
+        context.SetVariable("Progress", 0);
+        context.SetVariable("TotalRows", totalRows);
+        context.SetVariable("RowsProcessed", 0);
         
         // Process in chunks
         while (true)
         {
             // Clone metadata for current chunk
-            var chunkMetadata = CloneMetadata(Metadata);
-            chunkMetadata.Limit = ChunkSize;
+            var chunkMetadata = CloneMetadata(metadata);
+            chunkMetadata.Limit = chunkSize;
             chunkMetadata.Offset = offset;
             
             // Execute chunk
             var result = await provider.ExecuteAsync(
                 chunkMetadata,
-                Parameters,
-                Context,
+                parameters,
+                execContext,
                 context.CancellationToken
             );
             
@@ -105,19 +103,17 @@ public class ExecuteDataQueryActivity : Activity
             offset += chunkList.Count;
             
             // Update progress
-            var progress = TotalRows > 0 ? (int)(offset * 100.0 / TotalRows) : 100;
-            context.WorkflowExecutionContext.SetVariable("Progress", progress);
-            context.WorkflowExecutionContext.SetVariable("RowsProcessed", offset);
+            var progress = totalRows > 0 ? (int)(offset * 100.0 / totalRows) : 100;
+            context.SetVariable("Progress", progress);
+            context.SetVariable("RowsProcessed", offset);
             
             // Check if we've processed all data
-            if (chunkList.Count < ChunkSize)
+            if (chunkList.Count < chunkSize)
                 break;
         }
         
-        ResultData = allData;
-        ExecutionTimeSeconds = (DateTime.UtcNow - startTime).TotalSeconds;
-        
-        return Done();
+        ResultData.Set(context, allData);
+        ExecutionTimeSeconds.Set(context, (DateTime.UtcNow - startTime).TotalSeconds);
     }
     
     private DataOperationMetadata CloneMetadata(DataOperationMetadata original)

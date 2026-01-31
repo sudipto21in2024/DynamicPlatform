@@ -55,10 +55,11 @@ public static class DataDesignerServiceExtensions
         services.AddScoped<INotificationService, NotificationService>();
         
         // Register Elsa activities
-        services.AddActivity<ExecuteDataQueryActivity>();
-        services.AddActivity<GenerateReportOutputActivity>();
-        services.AddActivity<UploadToStorageActivity>();
-        services.AddActivity<NotifyUserActivity>();
+        // Register Elsa activities
+        services.AddTransient<ExecuteDataQueryActivity>();
+        services.AddTransient<GenerateReportOutputActivity>();
+        services.AddTransient<UploadToStorageActivity>();
+        services.AddTransient<NotifyUserActivity>();
         
         return services;
     }

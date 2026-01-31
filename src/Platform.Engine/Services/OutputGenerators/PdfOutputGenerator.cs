@@ -116,15 +116,14 @@ public class PdfOutputGenerator : IOutputGenerator
                     .AlignCenter()
                     .Text(text =>
                     {
+                        text.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Grey.Darken1));
                         text.Span("Generated on ");
                         text.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")).SemiBold();
                         text.Span(" | Page ");
                         text.CurrentPageNumber();
                         text.Span(" of ");
                         text.TotalPages();
-                    })
-                    .FontSize(8)
-                    .FontColor(Colors.Grey.Darken1);
+                    });
             });
         })
         .GeneratePdf(stream);

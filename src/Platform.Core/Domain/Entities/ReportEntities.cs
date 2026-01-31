@@ -1,4 +1,4 @@
-namespace Platform.Engine.Models.DataExecution;
+namespace Platform.Core.Domain.Entities;
 
 /// <summary>
 /// Entity for storing report definitions
@@ -57,7 +57,13 @@ public class JobInstance
     
     public string UserId { get; set; } = string.Empty;
     
+    public string? WorkflowInstanceId { get; set; } // Link to Elsa workflow
+    
     public JobStatus Status { get; set; }
+    
+    public string? OutputFormat { get; set; }
+    
+    public string? ReportTitle { get; set; }
     
     public int Progress { get; set; } // 0-100
     
@@ -85,4 +91,36 @@ public enum JobStatus
     Completed,
     Failed,
     Cancelled
+}
+
+/// <summary>
+/// Entity for user notifications
+/// </summary>
+public class Notification
+{
+    public Guid Id { get; set; }
+    
+    public string UserId { get; set; } = string.Empty;
+    
+    public string Title { get; set; } = string.Empty;
+    
+    public string Message { get; set; } = string.Empty;
+    
+    public NotificationType Type { get; set; }
+    
+    public string? ActionUrl { get; set; }
+    
+    public bool IsRead { get; set; }
+    
+    public DateTime CreatedAt { get; set; }
+    
+    public string? DataJson { get; set; } // Serialized extra data
+}
+
+public enum NotificationType
+{
+    Info,
+    Success,
+    Warning,
+    Error
 }

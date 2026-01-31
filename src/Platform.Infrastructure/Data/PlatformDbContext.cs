@@ -12,6 +12,9 @@ public class PlatformDbContext : DbContext
     public DbSet<Tenant> Tenants { get; set; }
     public DbSet<Project> Projects { get; set; }
     public DbSet<Artifact> Artifacts { get; set; }
+    public DbSet<ReportDefinition> ReportDefinitions { get; set; }
+    public DbSet<JobInstance> JobInstances { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

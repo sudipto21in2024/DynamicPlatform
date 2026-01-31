@@ -1,104 +1,112 @@
 namespace Platform.Engine.Workflows.Definitions;
 
-using Elsa;
-using Elsa.Activities.ControlFlow;
-using Elsa.Builders;
+using Elsa.Workflows;
+using Elsa.Workflows.Activities;
+using Elsa.Workflows.Models;
+using Elsa.Workflows.Contracts;
+using Elsa.Workflows.Memory;
+using Elsa.Extensions;
 using Platform.Engine.Workflows.Activities;
+using Platform.Engine.Models.DataExecution;
 
 /// <summary>
 /// Workflow definition for long-running report generation
 /// </summary>
-public class LongRunningReportWorkflow : IWorkflow
+public class LongRunningReportWorkflow : WorkflowBase
 {
-    public void Build(IWorkflowBuilder builder)
+    protected override void Build(IWorkflowBuilder builder)
     {
-        builder
-            .WithDisplayName("Long-Running Report Generation")
-            .WithDescription("Executes data query, generates report, uploads to storage, and notifies user")
-            .WithVersion(1)
-            
-            // Step 1: Execute data query with chunked processing
-            .StartWith<ExecuteDataQueryActivity>(activity =>
-            {
-                activity.Set(x => x.Metadata, context => 
-                    context.GetVariable<DataOperationMetadata>("Metadata")!);
-                activity.Set(x => x.Parameters, context => 
-                    context.GetVariable<Dictionary<string, object>>("Parameters") ?? new());
-                activity.Set(x => x.Context, context => 
-                    context.GetVariable<ExecutionContext>("Context")!);
-                activity.Set(x => x.ProviderType, context => 
-                    context.GetVariable<string>("ProviderType") ?? "Entity");
-                activity.Set(x => x.ChunkSize, context => 
-                    context.GetVariable<int>("ChunkSize") > 0 
-                        ? context.GetVariable<int>("ChunkSize") 
-                        : 1000);
-            })
-            .WithName("ExecuteQuery")
-            
-            // Step 2: Generate output file
-            .Then<GenerateReportOutputActivity>(activity =>
-            {
-                activity.Set(x => x.Data, context => 
-                    context.GetVariable<List<object>>("ExecuteQuery:ResultData")!);
-                activity.Set(x => x.OutputFormat, context => 
-                    context.GetVariable<string>("OutputFormat") ?? "Excel");
-                activity.Set(x => x.Title, context => 
-                    context.GetVariable<string>("ReportTitle"));
-                activity.Set(x => x.IncludeHeaders, context => 
-                    context.GetVariable<bool>("IncludeHeaders") || true);
-            })
-            .WithName("GenerateOutput")
-            
-            // Step 3: Upload to storage
-            .Then<UploadToStorageActivity>(activity =>
-            {
-                activity.Set(x => x.FileStream, context => 
-                    context.GetVariable<Stream>("GenerateOutput:OutputFile")!);
-                activity.Set(x => x.FileName, context => 
-                    context.GetVariable<string>("GenerateOutput:FileName")!);
-                activity.Set(x => x.JobId, context => 
-                    context.GetVariable<string>("JobId")!);
-                activity.Set(x => x.ContainerName, context => 
-                    context.GetVariable<string>("ContainerName") ?? "reports");
-            })
-            .WithName("UploadFile")
-            
-            // Step 4: Notify user of success
-            .Then<NotifyUserActivity>(activity =>
-            {
-                activity.Set(x => x.UserId, context => 
-                    context.GetVariable<string>("UserId")!);
-                activity.Set(x => x.JobId, context => 
-                    context.GetVariable<string>("JobId")!);
-                activity.Set(x => x.DownloadUrl, context => 
-                    context.GetVariable<string>("UploadFile:DownloadUrl"));
-                activity.Set(x => x.Status, "Completed");
-                activity.Set(x => x.ReportTitle, context => 
-                    context.GetVariable<string>("ReportTitle"));
-                activity.Set(x => x.TotalRows, context => 
-                    context.GetVariable<long>("ExecuteQuery:TotalRows"));
-            })
-            .WithName("NotifySuccess");
+        // Define variables
+        // Define variables
+        var metadata = new Variable<DataOperationMetadata>();
+        var parameters = new Variable<Dictionary<string, object>>();
+        var context = new Variable<ExecutionContext>();
+        var providerType = new Variable<string>();
+        var chunkSize = new Variable<int>();
+        var outputFormat = new Variable<string>();
+        var reportTitle = new Variable<string>();
+        var includeHeaders = new Variable<bool>();
+        var jobId = new Variable<string>();
+        var userId = new Variable<string>();
+        var containerName = new Variable<string>();
         
-        // Add fault handler for errors
-        builder
-            .Add<Fault>(fault =>
+        // Output variables from activities
+        var queryResultData = new Variable<List<object>>();
+        var queryTotalRows = new Variable<long>();
+        var outputFileStream = new Variable<Stream>();
+        var outputFileName = new Variable<string>();
+        var downloadUrl = new Variable<string>();
+
+        builder.Root = new Sequence
+        {
+            Variables = 
+            { 
+                metadata, parameters, context, providerType, chunkSize, 
+                outputFormat, reportTitle, includeHeaders, jobId, userId, containerName,
+                queryResultData, queryTotalRows, outputFileStream, outputFileName, downloadUrl
+            },
+            Activities =
             {
-                fault
-                    .When(OutcomeNames.Fault)
-                    .Then<NotifyUserActivity>(activity =>
-                    {
-                        activity.Set(x => x.UserId, context => 
-                            context.GetVariable<string>("UserId")!);
-                        activity.Set(x => x.JobId, context => 
-                            context.GetVariable<string>("JobId")!);
-                        activity.Set(x => x.Status, "Failed");
-                        activity.Set(x => x.ErrorMessage, context => 
-                            context.GetVariable<string>("Fault:Message") ?? "Unknown error occurred");
-                        activity.Set(x => x.ReportTitle, context => 
-                            context.GetVariable<string>("ReportTitle"));
-                    })
-                    .WithName("NotifyFailure");
-            });
+                // Init variables from inputs
+                new Inline(new Action<ActivityExecutionContext>(ctx => 
+                {
+                    metadata.Set(ctx, ctx.GetWorkflowInput<DataOperationMetadata>("Metadata"));
+                    parameters.Set(ctx, ctx.GetWorkflowInput<Dictionary<string, object>>("Parameters"));
+                    context.Set(ctx, ctx.GetWorkflowInput<ExecutionContext>("Context"));
+                    providerType.Set(ctx, ctx.GetWorkflowInput<string>("ProviderType"));
+                    chunkSize.Set(ctx, ctx.GetWorkflowInput<int>("ChunkSize"));
+                    outputFormat.Set(ctx, ctx.GetWorkflowInput<string>("OutputFormat"));
+                    reportTitle.Set(ctx, ctx.GetWorkflowInput<string>("ReportTitle"));
+                    includeHeaders.Set(ctx, ctx.GetWorkflowInput<bool>("IncludeHeaders"));
+                    jobId.Set(ctx, ctx.GetWorkflowInput<string>("JobId"));
+                    userId.Set(ctx, ctx.GetWorkflowInput<string>("UserId"));
+                    containerName.Set(ctx, ctx.GetWorkflowInput<string>("ContainerName"));
+                })),
+
+                // Step 1: Execute data query
+                new ExecuteDataQueryActivity
+                {
+                    Metadata = new Input<DataOperationMetadata>(metadata),
+                    Parameters = new Input<Dictionary<string, object>>(parameters),
+                    Context = new Input<ExecutionContext>(context),
+                    ProviderType = new Input<string>(providerType),
+                    ChunkSize = new Input<int>(chunkSize),
+                    ResultData = new Output<List<object>>(queryResultData),
+                    TotalRows = new Output<long>(queryTotalRows)
+                },
+                
+                // Step 2: Generate output file
+                new GenerateReportOutputActivity
+                {
+                    Data = new Input<List<object>>(queryResultData),
+                    OutputFormat = new Input<string>(outputFormat),
+                    Title = new Input<string?>(reportTitle),
+                    IncludeHeaders = new Input<bool>(includeHeaders),
+                    OutputFile = new Output<Stream>(outputFileStream),
+                    FileName = new Output<string>(outputFileName)
+                },
+                
+                // Step 3: Upload to storage
+                new UploadToStorageActivity
+                {
+                    FileStream = new Input<Stream>(outputFileStream),
+                    FileName = new Input<string>(outputFileName),
+                    JobId = new Input<string>(jobId),
+                    ContainerName = new Input<string>(containerName),
+                    DownloadUrl = new Output<string>(downloadUrl)
+                },
+                
+                // Step 4: Notify user of success
+                new NotifyUserActivity
+                {
+                    UserId = new Input<string>(userId),
+                    JobId = new Input<string>(jobId),
+                    DownloadUrl = new Input<string?>(downloadUrl),
+                    Status = new Input<string>("Completed"),
+                    ReportTitle = new Input<string?>(reportTitle),
+                    TotalRows = new Input<long>(queryTotalRows)
+                }
+            }
+        };
     }
 }

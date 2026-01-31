@@ -2,7 +2,9 @@ namespace Platform.Engine.Services;
 
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
-using Platform.Engine.Workflows.Activities;
+using Platform.Engine.Interfaces;
+using Platform.Core.Domain.Entities;
+using Platform.Core.Interfaces;
 
 /// <summary>
 /// Notification service implementation
@@ -107,23 +109,6 @@ public class NotificationService : INotificationService
             isHtml: true
         );
     }
-}
-
-/// <summary>
-/// Email service interface
-/// </summary>
-public interface IEmailService
-{
-    Task SendAsync(string to, string subject, string body, bool isHtml = false);
-}
-
-/// <summary>
-/// SignalR service interface
-/// </summary>
-public interface ISignalRService
-{
-    Task SendToUserAsync(string userId, string eventName, object data);
-    Task SendToAllAsync(string eventName, object data);
 }
 
 /// <summary>

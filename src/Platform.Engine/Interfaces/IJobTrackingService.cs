@@ -1,6 +1,6 @@
 namespace Platform.Engine.Interfaces;
 
-using Platform.Engine.Models.DataExecution;
+using Platform.Core.Domain.Entities;
 
 /// <summary>
 /// Service for tracking job execution status
