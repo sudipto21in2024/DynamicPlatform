@@ -55,6 +55,17 @@ import { ApiService } from '../../services/api';
           
           <div class="h-6 w-px bg-white/10 mx-2"></div>
 
+          <div class="flex flex-col space-y-1 mr-4">
+            <label class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-blue-400 transition-colors">
+              <input type="checkbox" [(ngModel)]="buildOptions.includeUI" class="form-checkbox h-3 w-3 text-blue-600 bg-black/40 border-white/10 rounded">
+              <span>UI</span>
+            </label>
+            <label class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-purple-400 transition-colors">
+              <input type="checkbox" [(ngModel)]="buildOptions.enableAIEnabledDocs" class="form-checkbox h-3 w-3 text-purple-600 bg-black/40 border-white/10 rounded">
+              <span>AI Docs</span>
+            </label>
+          </div>
+
           <button (click)="buildAsZip()" class="group flex items-center space-x-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 px-4 py-2 rounded-xl transition-all shadow-xl active:scale-95">
              <span class="material-icons-outlined text-lg text-amber-400 group-hover:rotate-12 transition-transform">folder_zip</span>
              <span class="font-bold tracking-tight">Export Code</span>
@@ -278,6 +289,11 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
   selectedNode: any = null;
   resizeHandler = this.onResize.bind(this);
   isPublishing = false;
+  buildOptions = {
+    includeUI: true,
+    enableAIEnabledDocs: true,
+    standaloneAPI: false
+  };
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -508,12 +524,13 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
 
   buildAsZip() {
     if (!this.projectId) return;
-    this.api.buildProject(this.projectId).subscribe({
+    this.api.buildProject(this.projectId, this.buildOptions).subscribe({
       next: (blob) => {
         const url = globalThis.URL.createObjectURL(blob);
         const a = globalThis.document.createElement('a');
         a.href = url;
-        a.download = `Application_Source_Standard.zip`;
+        const suffix = this.buildOptions.includeUI ? 'Full_Stack' : 'API_Only';
+        a.download = `${suffix}_Export.zip`;
         a.click();
         globalThis.URL.revokeObjectURL(url);
       },

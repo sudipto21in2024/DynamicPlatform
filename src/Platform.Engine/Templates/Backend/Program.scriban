@@ -27,7 +27,17 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => {
+    {{~ if Options.EnableAIEnabledDocs ~}}
+    var xmlFile = $"{typeof(Program).Assembly.GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+    options.CustomOperationIds(e => $"{e.ActionDescriptor.RouteValues["action"]}{e.ActionDescriptor.RouteValues["controller"]}");
+    {{~ end ~}}
+});
 
 // CORS
 builder.Services.AddCors(options =>
@@ -85,7 +95,7 @@ builder.Services.AddOptions<Elsa.Workflows.Management.Options.WorkflowManagement
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || {{ Options.EnableAIEnabledDocs | string.downcase }})
 {
     app.UseSwagger();
     app.UseSwaggerUI();

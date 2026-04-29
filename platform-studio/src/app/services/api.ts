@@ -26,8 +26,8 @@ export class ApiService {
     return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/entities`, metadata);
   }
 
-  buildProject(projectId: string): Observable<Blob> {
-    return this.http.post(`${this.apiUrl}/projects/${projectId}/build`, {}, { responseType: 'blob' });
+  buildProject(projectId: string, options: any = {}): Observable<Blob> {
+    return this.http.post(`${this.apiUrl}/projects/${projectId}/build`, options, { responseType: 'blob' });
   }
 
   publishProject(projectId: string): Observable<any> {

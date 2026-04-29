@@ -68,8 +68,9 @@ public class BuildController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> BuildProject(Guid projectId)
+    public async Task<IActionResult> BuildProject(Guid projectId, [FromBody] BuildOptions? options = null)
     {
+        options ??= new BuildOptions();
         var artifacts = await _repo.GetByProjectIdAsync(projectId);
         var initialEntities = new List<EntityMetadata>();
         var connectors = new List<ConnectorMetadata>();
@@ -152,7 +153,11 @@ public class BuildController : ControllerBase
             // 3. Generate Infrastructure (Full Code Export)
             var apiNamespace = $"{baseNamespace}.API";
             
-            // ... (existing generation logic)
+            var csprojCode = _projectGen.GenerateCsproj(apiNamespace, workflows.Any(), options);
+            AddFileToZip(archive, $"{apiNamespace}/{apiNamespace}.csproj", csprojCode);
+
+            var programCode = _projectGen.GenerateProgram(apiNamespace, entities, connectors, workflows, options);
+            AddFileToZip(archive, $"{apiNamespace}/Program.cs", programCode);
 
             foreach (var entity in entities)
             {
@@ -176,24 +181,30 @@ public class BuildController : ControllerBase
                 var formBackendCode = _formGen.GenerateBackend(form, baseNamespace);
                 AddFileToZip(archive, $"{apiNamespace}/Models/Forms/{form.Name}Form.cs", formBackendCode);
 
-                var formFrontendCode = _formGen.GenerateFrontend(form);
-                AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), formFrontendCode);
+                if (options.IncludeUI)
+                {
+                    var formFrontendCode = _formGen.GenerateFrontend(form);
+                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), formFrontendCode);
+                }
             }
 
             // 7. Generate Dashboards/Pages
-            foreach (var page in pages)
+            if (options.IncludeUI)
             {
-                var pageCode = _frontendLayoutGen.GenerateDashboard(page);
-                AddFileToZip(archive, $"Frontend/src/app/pages/dashboards/{page.Name.ToLower()}.component.ts", pageCode);
+                foreach (var page in pages)
+                {
+                    var pageCode = _frontendLayoutGen.GenerateDashboard(page);
+                    AddFileToZip(archive, $"Frontend/src/app/pages/dashboards/{page.Name.ToLower()}.component.ts", pageCode);
+                }
+
+                // 7b. Generate Layout/Navigation (Reflecting Security Features)
+                var navCode = _frontendLayoutGen.GenerateNavigation(baseNamespace, security ?? new SecurityMetadata());
+                AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.ts", navCode);
+
+                // 7c. Generate UI Logging Service
+                var logServiceCode = _frontendLayoutGen.GenerateLoggingService("DEBUG", true);
+                AddFileToZip(archive, "Frontend/src/app/services/logging.service.ts", logServiceCode);
             }
-
-            // 7b. Generate Layout/Navigation (Reflecting Security Features)
-            var navCode = _frontendLayoutGen.GenerateNavigation(baseNamespace, security ?? new SecurityMetadata());
-            AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.ts", navCode);
-
-            // 7c. Generate UI Logging Service
-            var logServiceCode = _frontendLayoutGen.GenerateLoggingService("DEBUG", true);
-            AddFileToZip(archive, "Frontend/src/app/services/logging.service.ts", logServiceCode);
 
             // 8. Generate DbContext
             if (entities.Any())

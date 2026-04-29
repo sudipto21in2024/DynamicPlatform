@@ -44,18 +44,23 @@ public class ProjectGenerator
         throw new FileNotFoundException($"Template not found at {templatePath}");
     }
 
-    public string GenerateCsproj(string ns, bool hasWorkflows)
+    public string GenerateCsproj(string ns, bool hasWorkflows, BuildOptions options)
     {
-        return _csprojTemplate.Render(new { Namespace = ns, HasWorkflows = hasWorkflows }, member => member.Name);
+        return _csprojTemplate.Render(new { 
+            Namespace = ns, 
+            HasWorkflows = hasWorkflows,
+            Options = options
+        }, member => member.Name);
     }
 
-    public string GenerateProgram(string ns, List<EntityMetadata> entities, List<ConnectorMetadata> connectors, List<WorkflowMetadata> workflows)
+    public string GenerateProgram(string ns, List<EntityMetadata> entities, List<ConnectorMetadata> connectors, List<WorkflowMetadata> workflows, BuildOptions options)
     {
         return _programTemplate.Render(new { 
             Namespace = ns,
             Entities = entities,
             Connectors = connectors,
-            Workflows = workflows
+            Workflows = workflows,
+            Options = options
         }, member => member.Name);
     }
 

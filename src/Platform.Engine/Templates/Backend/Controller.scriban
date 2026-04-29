@@ -8,6 +8,9 @@ using {{ Namespace }};
 
 namespace GeneratedApp.Controllers;
 
+/// <summary>
+/// API Controller for managing {{ Name }} resources.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class {{ Name }}Controller : ControllerBase
@@ -19,7 +22,13 @@ public class {{ Name }}Controller : ControllerBase
         _repository = repository;
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Retrieves a list of all {{ Name }} resources, optionally paged.
+    /// </summary>
+    /// <param name="pageIndex">The zero-based page index.</param>
+    /// <param name="pageSize">The size of the page.</param>
+    /// <returns>A list of {{ Name }} resources.</returns>
+    [HttpGet(Name = "Get{{ Name }}List")]
     public async Task<ActionResult> Get([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
         if (pageIndex.HasValue && pageSize.HasValue)
@@ -32,7 +41,12 @@ public class {{ Name }}Controller : ControllerBase
         return Ok(items);
     }
 
-    [HttpGet("{id}")]
+    /// <summary>
+    /// Retrieves a specific {{ Name }} by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the {{ Name }}.</param>
+    /// <returns>The requested {{ Name }} resource.</returns>
+    [HttpGet("{id}", Name = "Get{{ Name }}ById")]
     public async Task<ActionResult<{{ Name }}>> GetById(Guid id)
     {
         var item = await _repository.GetByIdAsync(id);
@@ -40,14 +54,25 @@ public class {{ Name }}Controller : ControllerBase
         return Ok(item);
     }
 
-    [HttpPost]
+    /// <summary>
+    /// Creates a new {{ Name }} resource.
+    /// </summary>
+    /// <param name="item">The {{ Name }} resource to create.</param>
+    /// <returns>The newly created {{ Name }} resource.</returns>
+    [HttpPost(Name = "Create{{ Name }}")]
     public async Task<ActionResult<{{ Name }}>> Create({{ Name }} item)
     {
         await _repository.AddAsync(item);
         return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
     }
 
-    [HttpPut("{id}")]
+    /// <summary>
+    /// Updates an existing {{ Name }} resource.
+    /// </summary>
+    /// <param name="id">The unique identifier of the {{ Name }} to update.</param>
+    /// <param name="item">The updated {{ Name }} data.</param>
+    /// <returns>No content on success.</returns>
+    [HttpPut("{id}", Name = "Update{{ Name }}")]
     public async Task<IActionResult> Update(Guid id, {{ Name }} item)
     {
         if (id != item.Id) return BadRequest();
@@ -55,7 +80,12 @@ public class {{ Name }}Controller : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    /// <summary>
+    /// Deletes a specific {{ Name }} resource.
+    /// </summary>
+    /// <param name="id">The unique identifier of the {{ Name }} to delete.</param>
+    /// <returns>No content on success.</returns>
+    [HttpDelete("{id}", Name = "Delete{{ Name }}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _repository.DeleteAsync(id);
