@@ -28,20 +28,17 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# Standard Build & Log Directories
+build/
+logs/
+artifacts/
+temp/
+
 # Project Specific
 *.zip
-*.log
-api_log.txt
-build_log.txt
-build_error.txt
-build_out.txt
-runtime_error.txt
-msbuild.log
-entities.json
-entities_v2.json
+entities*.json
 project_data.json
-DemoBuild/
-DemoBuild_v*/
+DemoBuild*/
 
 # Gemini / MCP Configuration
 mcp_servers.json
