@@ -145,8 +145,49 @@ import { ApiService } from '../../services/api';
               </div>
             </ng-container>
 
+            <!-- AI Entity Designer preview (updatedEntity & newEntities) -->
+            <ng-container *ngIf="!isArray(result) && result.updatedEntity">
+              <div class="entity-row" style="border-left: 4px solid #8b5cf6; background: rgba(139,92,246,0.04); margin-bottom: 12px; border-radius: 8px;">
+                <div class="entity-name" style="color: #c084fc;">
+                  <span class="material-icons-outlined entity-icon" style="color: #c084fc;">edit_note</span>
+                  Update Entity: {{ result.updatedEntity.name }}
+                  <span class="field-count">{{ result.updatedEntity.fields?.length || 0 }} fields</span>
+                </div>
+                <div class="field-chips">
+                  <span class="field-chip" *ngFor="let f of result.updatedEntity.fields" 
+                        [style.background]="isNewField(f) ? 'rgba(52,211,153,0.08)' : 'rgba(96,165,250,0.08)'"
+                        [style.color]="isNewField(f) ? '#34d399' : '#93c5fd'"
+                        [style.border-color]="isNewField(f) ? 'rgba(52,211,153,0.15)' : 'rgba(96,165,250,0.15)'">
+                    {{ f.name }}: {{ f.type }}{{ f.isRequired ? '*' : '' }}{{ isNewField(f) ? ' [NEW]' : '' }}
+                  </span>
+                </div>
+              </div>
+
+              <div *ngIf="result.newEntities && result.newEntities.length > 0">
+                <div class="result-label" style="margin-top: 16px; margin-bottom: 8px; color: #34d399; font-size: 0.65rem;">➕ Additional Related Entities to Create</div>
+                <div class="entity-row" *ngFor="let entity of result.newEntities" style="border-left: 4px solid #10b981; background: rgba(16,185,129,0.03); border-radius: 8px; margin-bottom: 12px;">
+                  <div class="entity-name" style="color: #34d399;">
+                    <span class="material-icons-outlined entity-icon" style="color: #34d399;">add_box</span>
+                    {{ entity.name }}
+                    <span class="field-count">{{ entity.fields?.length || 0 }} fields</span>
+                  </div>
+                  <div class="field-chips">
+                    <span class="field-chip" *ngFor="let f of entity.fields" style="background:rgba(52,211,153,0.08); color:#34d399; border-color:rgba(52,211,153,0.15)">
+                      {{ f.name }}: {{ f.type }}{{ f.isRequired ? '*' : '' }}
+                    </span>
+                  </div>
+                  <div *ngIf="entity.relations && entity.relations.length > 0" style="margin-top: 8px; font-size: 0.7rem; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
+                    <div *ngFor="let rel of entity.relations" style="display:flex; align-items:center; gap:6px;">
+                      <span class="material-icons-outlined" style="font-size:0.85rem">link</span>
+                      {{ rel.type === 0 ? 'One-to-Many' : rel.type === 1 ? 'Many-to-One' : 'Many-to-Many' }} link to {{ rel.targetEntity }} (prop: {{ rel.navPropName }})
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
             <!-- Connector preview -->
-            <div class="connector-preview" *ngIf="!isArray(result) && result.businessLogic">
+            <div class="connector-preview" *ngIf="!isArray(result) && !result.updatedEntity && result.businessLogic">
               <div class="connector-name">
                 <span class="material-icons-outlined" style="color:#fbbf24">bolt</span>
                 {{ result.name }}
@@ -167,7 +208,7 @@ import { ApiService } from '../../services/api';
             </div>
 
             <!-- JSON fallback -->
-            <div *ngIf="!isArray(result) && !result.businessLogic" class="json-preview">{{ resultJson }}</div>
+            <div *ngIf="!isArray(result) && !result.updatedEntity && !result.businessLogic" class="json-preview">{{ resultJson }}</div>
           </div>
         </div>
 
@@ -198,8 +239,9 @@ export class AiGenerateModalComponent {
   @Input() title = '✨ Generate with AI';
   @Input() subtitle = 'Describe your requirement in plain language';
   @Input() placeholder = 'e.g., A product catalog with categories, variants, and inventory...';
-  @Input() mode: 'schema' | 'connector' | 'rule' = 'schema';
+  @Input() mode: 'schema' | 'connector' | 'rule' | 'entity-designer' = 'schema';
   @Input() projectId?: string;
+  @Input() currentEntity?: any;
   @Output() accepted = new EventEmitter<any>();
   @Output() cancel = new EventEmitter<void>();
 
@@ -221,7 +263,9 @@ export class AiGenerateModalComponent {
       ? this.api.aiGenerateConnector(this.prompt, this.projectId!)
       : this.mode === 'rule'
         ? this.api.aiGenerateRule(this.prompt, this.projectId!)
-        : this.api.aiGenerateSchema(this.prompt, this.projectId);
+        : this.mode === 'entity-designer'
+          ? this.api.aiDesignEntity(this.prompt, JSON.stringify(this.currentEntity), this.projectId)
+          : this.api.aiGenerateSchema(this.prompt, this.projectId);
 
     call$.subscribe({
       next: (raw: any) => {
@@ -244,4 +288,9 @@ export class AiGenerateModalComponent {
   accept() { this.accepted.emit(this.result); }
   isArray(v: any): boolean { return Array.isArray(v); }
   onBackdropClick(e: Event) { if (e.target === e.currentTarget) this.cancel.emit(); }
+
+  isNewField(field: any): boolean {
+    if (!this.currentEntity || !this.currentEntity.fields) return true;
+    return !this.currentEntity.fields.some((f: any) => f.name.toLowerCase() === field.name.toLowerCase());
+  }
 }

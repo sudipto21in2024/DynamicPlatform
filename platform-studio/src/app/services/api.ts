@@ -129,6 +129,9 @@ export class ApiService {
   aiGenerateSchema(prompt: string, projectId?: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/ai/generate-schema`, { prompt, projectId });
   }
+  aiDesignEntity(prompt: string, currentEntityJson: string, projectId?: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/ai/design-entity`, { prompt, projectId, currentEntityJson });
+  }
   aiGenerateConnector(prompt: string, projectId: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/ai/generate-connector`, { prompt, projectId });
   }

@@ -188,7 +188,7 @@ import { ProjectContextService } from '../../services/project-context';
               <span class="material-icons-outlined">add_box</span>
               New Entity
             </button>
-            <button (click)="showAiModal = true" class="tool-btn violet">
+            <button (click)="openAiSchemaDesigner()" class="tool-btn violet">
               <span class="material-icons-outlined">auto_awesome</span>
               AI Generate
             </button>
@@ -317,10 +317,15 @@ import { ProjectContextService } from '../../services/project-context';
               <!-- Identity -->
               <div class="prop-section">
                 <label class="section-label">Core Identification</label>
-                <div class="input-wrap">
+                <div class="input-wrap" style="margin-bottom: 0.75rem;">
                    <input type="text" [(ngModel)]="selectedNode.name" (ngModelChange)="redrawCanvas()" class="text-input" placeholder="Entity Name">
                    <span class="material-icons-outlined input-icon" style="font-size:18px">edit</span>
                 </div>
+                
+                <button (click)="openAiEntityDesigner()" class="btn-add purple animate-pulse" style="width: 100%; padding: 0.625rem 1rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border-radius: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15); border: none;">
+                  <span class="material-icons-outlined" style="font-size: 1rem;">auto_awesome</span>
+                  AI Assist Entity
+                </button>
               </div>
 
               <!-- Fields -->
@@ -447,12 +452,13 @@ import { ProjectContextService } from '../../services/project-context';
     <!-- AI Generate Modal -->
     <app-ai-generate-modal
       *ngIf="showAiModal"
-      title="✨ Generate Entities with AI"
-      subtitle="Describe your domain in plain language"
-      placeholder="e.g., An e-commerce system with products, categories, orders, customers and reviews"
-      mode="schema"
+      [title]="aiModalTitle"
+      [subtitle]="aiModalSubtitle"
+      [placeholder]="aiModalPlaceholder"
+      [mode]="aiModalMode"
       [projectId]="projectId!"
-      (accepted)="acceptGeneratedEntities($event)"
+      [currentEntity]="selectedNode"
+      (accepted)="handleAiModalAccept($event)"
       (cancel)="showAiModal = false">
     </app-ai-generate-modal>
   `
@@ -468,6 +474,10 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
   resizeHandler = this.onResize.bind(this);
   isPublishing = false;
   showAiModal = false;
+  aiModalTitle = '✨ Generate Entities with AI';
+  aiModalSubtitle = 'Describe your domain in plain language';
+  aiModalPlaceholder = 'e.g., An e-commerce system with products, categories, orders, customers and reviews';
+  aiModalMode: 'schema' | 'entity-designer' = 'schema';
   buildOptions = {
     includeUI: true,
     enableAIEnabledDocs: true,
@@ -684,6 +694,31 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
     this.redrawCanvas();
   }
 
+  openAiSchemaDesigner() {
+    this.aiModalTitle = '✨ Generate Entities with AI';
+    this.aiModalSubtitle = 'Describe your domain in plain language';
+    this.aiModalPlaceholder = 'e.g., An e-commerce system with products, categories, orders, customers and reviews';
+    this.aiModalMode = 'schema';
+    this.showAiModal = true;
+  }
+
+  openAiEntityDesigner() {
+    if (!this.selectedNode) return;
+    this.aiModalTitle = `✨ Design ${this.selectedNode.name} with AI`;
+    this.aiModalSubtitle = 'Propose updates to this entity or suggest related entities';
+    this.aiModalPlaceholder = `e.g., Add residential address fields and also create a related Order history entity...`;
+    this.aiModalMode = 'entity-designer';
+    this.showAiModal = true;
+  }
+
+  handleAiModalAccept(generated: any) {
+    if (this.aiModalMode === 'entity-designer') {
+      this.acceptEntityDesign(generated);
+    } else {
+      this.acceptGeneratedEntities(generated);
+    }
+  }
+
   acceptGeneratedEntities(generated: any) {
     this.showAiModal = false;
     const list = Array.isArray(generated) ? generated : [generated];
@@ -700,6 +735,44 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       }
     }
     this.selectedNode = list[list.length - 1];
+    this.redrawCanvas();
+  }
+
+  acceptEntityDesign(result: any) {
+    this.showAiModal = false;
+    if (!result) return;
+
+    // 1. Update current entity in place
+    if (result.updatedEntity && this.selectedNode) {
+      this.selectedNode.name = result.updatedEntity.name;
+      this.selectedNode.fields = result.updatedEntity.fields || [];
+      this.selectedNode.relations = result.updatedEntity.relations || [];
+      if (this.projectId) {
+        this.api.createEntity(this.projectId, this.selectedNode).subscribe();
+      }
+    }
+
+    // 2. Spawn and save new entities visually placed nearby
+    if (result.newEntities && result.newEntities.length > 0) {
+      let xOffset = (this.selectedNode?.x || 100) + 260;
+      let yOffset = this.selectedNode?.y || 120;
+      for (const newEntity of result.newEntities) {
+        newEntity.x = xOffset;
+        newEntity.y = yOffset;
+        xOffset += 240;
+        if (xOffset > 1000) {
+          xOffset = 100;
+          yOffset += 200;
+        }
+        if (!newEntity.relations) newEntity.relations = [];
+        if (!newEntity.events) newEntity.events = { onCreate: true, onUpdate: true, onDelete: true };
+        this.entities.push(newEntity);
+        if (this.projectId) {
+          this.api.createEntity(this.projectId, newEntity).subscribe();
+        }
+      }
+    }
+
     this.redrawCanvas();
   }
 

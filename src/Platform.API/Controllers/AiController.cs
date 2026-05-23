@@ -68,6 +68,73 @@ public class AiController : ControllerBase
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // POST /api/ai/design-entity
+    // Targeted redesign/modifications of a specific entity with optional new related entities.
+    // ─────────────────────────────────────────────────────────────────────────
+    [HttpPost("design-entity")]
+    public async Task<IActionResult> DesignEntity(
+        [FromBody] AiEntityDesignRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Prompt))
+            return BadRequest("Prompt is required.");
+
+        try
+        {
+            var tenantId = GetCurrentTenantId();
+
+            // Load DesignEntity skill
+            var skill = await _skillLibrary.GetSkillAsync("DesignEntity", request.ProjectId, ct);
+            var systemPrompt = BuildSystemPrompt(skill);
+
+            // Inject live schema context + current selected entity details
+            var schemaContext = await _contextExtractor.ExtractAsync(request.ProjectId, ct);
+            
+            var fullSystemPmt = systemPrompt + "\n\n" + schemaContext;
+            if (!string.IsNullOrWhiteSpace(request.CurrentEntityJson))
+            {
+                fullSystemPmt += $"\n\n## CURRENT SELECTED ENTITY FOR TARGETED ASSISTANCE\n{request.CurrentEntityJson}\n";
+            }
+
+            var history = BuildFewShotHistory(skill);
+
+            var (provider, model) = await _resolver.ResolveAsync(
+                tenantId,
+                skill.PreferredProvider,
+                skill.PreferredModel,
+                ct);
+
+            var aiRequest = new AiRequest
+            {
+                SystemPrompt = fullSystemPmt,
+                UserPrompt   = request.Prompt,
+                History      = history,
+                Model        = model,
+                Temperature  = skill.DefaultTemperature,
+                TopP         = skill.DefaultTopP,
+                MaxTokens    = skill.MaxTokens
+            };
+
+            _logger.LogInformation(
+                "AI entity design skill provider={Provider} model={Model} projectId={ProjectId}",
+                provider.ProviderName, model, request.ProjectId);
+
+            var rawOutput = await provider.CompleteAsync(aiRequest, ct);
+            var cleaned = CleanOutput(rawOutput, skill.ExpectedOutputFormat);
+            return Ok(cleaned);
+        }
+        catch (AiProviderNotConfiguredException ex)
+        {
+            return StatusCode(402, new { error = "AI_PROVIDER_REQUIRED", message = ex.Message,
+                settingsUrl = "/settings/ai-providers" });
+        }
+        catch (AiProviderException ex)
+        {
+            _logger.LogError("AI provider error for DesignEntity skill: {Message}", ex.Message);
+            return StatusCode(502, new { error = "AI_PROVIDER_ERROR", message = ex.Message });
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // POST /api/ai/generate-connector
     // Converts a business requirement → ConnectorMetadata JSON with C# logic.
     //
@@ -415,6 +482,13 @@ public class AiPromptRequest
     public string Prompt    { get; set; } = string.Empty;
     /// <summary>If provided, the AI receives the project's entity/connector schema as context.</summary>
     public Guid?  ProjectId { get; set; }
+}
+
+public class AiEntityDesignRequest
+{
+    public string Prompt { get; set; } = string.Empty;
+    public Guid? ProjectId { get; set; }
+    public string CurrentEntityJson { get; set; } = string.Empty;
 }
 
 public class AiCompleteRequest

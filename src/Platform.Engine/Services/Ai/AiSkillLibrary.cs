@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Platform.Core.Domain.Entities;
 using Platform.Core.Interfaces;
 using Platform.Engine.Models;
+using System.IO;
 
 namespace Platform.Engine.Services.Ai;
 
@@ -67,6 +68,7 @@ public class AiSkillLibrary
         "GenerateEntitySchema"   => BuiltInSkills.GenerateEntitySchema,
         "GenerateBusinessRule"   => BuiltInSkills.GenerateBusinessRule,
         "ExplainLogic"           => BuiltInSkills.ExplainLogic,
+        "DesignEntity"           => BuiltInSkills.DesignEntity,
         _                        => BuiltInSkills.GenerateConnectorLogic // safe default
     };
 
@@ -75,7 +77,8 @@ public class AiSkillLibrary
         BuiltInSkills.GenerateConnectorLogic,
         BuiltInSkills.GenerateEntitySchema,
         BuiltInSkills.GenerateBusinessRule,
-        BuiltInSkills.ExplainLogic
+        BuiltInSkills.ExplainLogic,
+        BuiltInSkills.DesignEntity
     };
 }
 
@@ -85,6 +88,16 @@ public class AiSkillLibrary
 /// </summary>
 internal static class BuiltInSkills
 {
+    private static string LoadPromptResource(string promptFileName)
+    {
+        var assembly = typeof(BuiltInSkills).Assembly;
+        var resourceName = $"Platform.Engine.Services.Ai.Prompts.{promptFileName}";
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
+            throw new System.IO.FileNotFoundException($"Embedded resource {resourceName} not found.");
+        using var reader = new System.IO.StreamReader(stream);
+        return reader.ReadToEnd().Trim();
+    }
     public static readonly AiSkillMetadata GenerateConnectorLogic = new()
     {
         SkillName = "GenerateConnectorLogic",
@@ -93,28 +106,7 @@ internal static class BuiltInSkills
         DefaultTemperature = 0.3,
         MaxTokens = 8192,
         ExpectedOutputFormat = "JSON",
-        SystemPrompt =
-            "You are an expert C# developer for DynamicPlatform — a low-code application builder.\n" +
-            "Your task is to generate business logic for a Connector — a stateless execution unit.\n\n" +
-            "HARD RULES (follow all):\n" +
-            "1. Output ONLY a single valid JSON object. No markdown. No prose outside the JSON.\n" +
-            "2. The JSON must conform to ConnectorMetadata schema (see OUTPUT FORMAT).\n" +
-            "3. The 'businessLogic' field must contain only C# statements — no class or method declarations.\n" +
-            "4. Use ONLY input variable names declared in your 'inputs' array.\n" +
-            "5. Do NOT instantiate entity classes: no 'new Order()', 'new Customer()', etc.\n" +
-            "6. Do NOT access files, processes, or reflection.\n" +
-            "7. Always return a typed value. Log key steps using: logger.LogInformation(\"...\").\n" +
-            "8. Wrap multi-line logic using \\n escape in the JSON string.\n\n" +
-            "OUTPUT FORMAT:\n" +
-            "{\n" +
-            "  \"name\": \"PascalCaseName\",\n" +
-            "  \"namespace\": \"GeneratedApp.Connectors\",\n" +
-            "  \"description\": \"One sentence.\",\n" +
-            "  \"inputs\": [ { \"name\": \"FieldName\", \"type\": \"csharptype\" } ],\n" +
-            "  \"outputs\": [ { \"name\": \"ResultName\", \"type\": \"csharptype\" } ],\n" +
-            "  \"configProperties\": [],\n" +
-            "  \"businessLogic\": \"// C# statements only\"\n" +
-            "}",
+        SystemPrompt = LoadPromptResource("GenerateConnectorLogic.md"),
         GuidePrompt =
             "Understood. I will output only a valid JSON object. " +
             "The businessLogic will contain only executable C# statements. Ready.",
@@ -139,6 +131,17 @@ internal static class BuiltInSkills
         ForbiddenOutputPatterns = new() { "new Order(", "new Customer(", "File.Delete", "Process.Start", "DROP TABLE" }
     };
 
+    public static readonly AiSkillMetadata DesignEntity = new()
+    {
+        SkillName = "DesignEntity",
+        Description = "Modifies/extends the current selected entity and/or suggests additional related entities based on a natural language prompt.",
+        Category = "SchemaDesign",
+        DefaultTemperature = 0.2,
+        MaxTokens = 4096,
+        ExpectedOutputFormat = "JSON",
+        SystemPrompt = LoadPromptResource("DesignEntity.md")
+    };
+
     public static readonly AiSkillMetadata GenerateEntitySchema = new()
     {
         SkillName = "GenerateEntitySchema",
@@ -147,21 +150,7 @@ internal static class BuiltInSkills
         DefaultTemperature = 0.2,
         MaxTokens = 4096,
         ExpectedOutputFormat = "JSON",
-        SystemPrompt =
-            "You are a Software Architect designing a data model for a business application.\n" +
-            "Convert the user's domain description into a JSON array of EntityMetadata objects.\n\n" +
-            "HARD RULES:\n" +
-            "1. Output ONLY a valid JSON array. No markdown.\n" +
-            "2. Do NOT include Id, CreatedAt, or UpdatedAt — they are auto-generated.\n" +
-            "3. Field types: string | int | decimal | bool | datetime | guid.\n" +
-            "4. For FK references, use type=guid and name it EntityNameId (e.g., CustomerId).\n" +
-            "5. Namespace must always be 'GeneratedApp.Entities'.\n" +
-            "6. Relations: OneToMany | ManyToOne | ManyToMany.\n" +
-            "7. NavPropName must be PascalCase matching the target entity name.\n\n" +
-            "OUTPUT FORMAT:\n" +
-            "[ { \"name\": \"Entity\", \"namespace\": \"GeneratedApp.Entities\", " +
-            "\"fields\": [ { \"name\": \"F\", \"type\": \"string\", \"isRequired\": true, \"maxLength\": 100, \"rules\": [] } ], " +
-            "\"relations\": [ { \"targetEntity\": \"Other\", \"type\": \"ManyToOne\", \"navPropName\": \"Other\", \"foreignKeyName\": \"OtherId\" } ] } ]"
+        SystemPrompt = LoadPromptResource("GenerateEntitySchema.md")
     };
 
     public static readonly AiSkillMetadata GenerateBusinessRule = new()
@@ -172,16 +161,7 @@ internal static class BuiltInSkills
         DefaultTemperature = 0.2,
         MaxTokens = 2048,
         ExpectedOutputFormat = "JSON",
-        SystemPrompt =
-            "You are a business rules analyst for DynamicPlatform.\n" +
-            "Convert user requirements into BusinessRuleMetadata JSON objects.\n\n" +
-            "RULES:\n" +
-            "1. Output ONLY valid JSON. No markdown.\n" +
-            "2. Trigger: BeforeSave | AfterSave | OnDelete.\n" +
-            "3. Condition: simple boolean expression using entity field names.\n" +
-            "4. Action: simple mutation — 'Set FieldName = Value'.\n\n" +
-            "OUTPUT: { \"name\": \"RuleName\", \"description\": \"...\", \"targetEntity\": \"EntityName\", " +
-            "\"trigger\": \"BeforeSave\", \"condition\": \"Field > Value\", \"action\": \"Set OtherField = NewValue\" }"
+        SystemPrompt = LoadPromptResource("GenerateBusinessRule.md")
     };
 
     public static readonly AiSkillMetadata ExplainLogic = new()
@@ -192,13 +172,6 @@ internal static class BuiltInSkills
         DefaultTemperature = 0.5,
         MaxTokens = 2048,
         ExpectedOutputFormat = "Markdown",
-        SystemPrompt =
-            "You are a senior code reviewer. Given a C# code snippet from a DynamicPlatform connector, " +
-            "explain what it does in plain English. Structure your response as:\n" +
-            "1. **What it does** (1 sentence)\n" +
-            "2. **Inputs it uses**\n" +
-            "3. **Logic steps** (numbered)\n" +
-            "4. **Output it returns**\n" +
-            "5. **Potential issues or improvements**"
+        SystemPrompt = LoadPromptResource("ExplainLogic.md")
     };
 }
