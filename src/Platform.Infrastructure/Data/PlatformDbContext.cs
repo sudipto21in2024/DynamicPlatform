@@ -15,6 +15,7 @@ public class PlatformDbContext : DbContext
     public DbSet<ReportDefinition> ReportDefinitions { get; set; }
     public DbSet<JobInstance> JobInstances { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<TenantAiProvider> TenantAiProviders { get; set; }
     public DbSet<ProjectSnapshot> ProjectSnapshots { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -48,6 +49,18 @@ public class PlatformDbContext : DbContext
 
         modelBuilder.Entity<ProjectSnapshot>()
             .HasIndex(s => new { s.ProjectId, s.Version })
+            .IsUnique();
+
+        // TenantAiProvider -> Tenant
+        modelBuilder.Entity<TenantAiProvider>()
+            .HasOne(p => p.Tenant)
+            .WithMany()
+            .HasForeignKey(p => p.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Unique: one provider name per tenant
+        modelBuilder.Entity<TenantAiProvider>()
+            .HasIndex(p => new { p.TenantId, p.Name })
             .IsUnique();
     }
 }

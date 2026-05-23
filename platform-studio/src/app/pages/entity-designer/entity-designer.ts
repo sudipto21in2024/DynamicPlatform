@@ -4,175 +4,354 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import Konva from 'konva';
 import { ApiService } from '../../services/api';
+import { AiGenerateModalComponent } from '../../components/ai-generate-modal/ai-generate-modal';
+import { ProjectContextService } from '../../services/project-context';
 
 @Component({
   selector: 'app-entity-designer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AiGenerateModalComponent],
+  styles: [`
+    :host { display: block; }
+    .designer-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #0b1120; color: #e2e8f0; overflow: hidden; font-family: 'Inter', sans-serif; }
+
+    /* ── Toolbar ──────────────────────────────── */
+    .toolbar { height: 56px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; background: rgba(15,23,42,0.8); backdrop-filter: blur(16px); z-index: 20; }
+    .toolbar-left { display: flex; align-items: center; gap: 1.5rem; }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-icon-wrap { p: 0.5rem; background: rgba(59,130,246,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .brand-icon { color: #60a5fa; font-size: 1.125rem; }
+    .brand-title { font-size: 0.875rem; font-weight: 900; color: #fff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; }
+    .brand-sub { font-size: 9px; color: #64748b; font-family: monospace; letter-spacing: -0.025em; opacity: 0.6; }
+    .v-divider { width: 1px; height: 2rem; background: rgba(255,255,255,0.1); margin: 0 0.5rem; }
+
+    .btn-group { display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem; background: rgba(0,0,0,0.2); border-radius: 12px; }
+    .tool-btn { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #94a3b8; padding: 0.375rem 1rem; border-radius: 8px; border: none; background: transparent; cursor: pointer; transition: all 0.2s; font-weight: 700; }
+    .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .tool-btn.blue:hover { color: #60a5fa; background: rgba(59,130,246,0.1); }
+    .tool-btn.violet:hover { color: #a78bfa; background: rgba(139,92,246,0.1); }
+    .tool-btn.purple:hover { color: #c084fc; background: rgba(168,85,247,0.1); }
+    .tool-btn.amber:hover { color: #fbbf24; background: rgba(245,158,11,0.1); }
+    .tool-btn.green:hover { color: #4ade80; background: rgba(34,197,94,0.1); }
+    .tool-btn .material-icons-outlined { font-size: 1.125rem; }
+
+    .toolbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .btn-commit { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #94a3b8; padding: 0.5rem 1rem; border-radius: 8px; border: none; background: transparent; cursor: pointer; transition: all 0.2s; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+    .btn-commit:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .btn-commit .material-icons-outlined { font-size: 1.125rem; }
+
+    .options-stack { display: flex; flex-direction: column; gap: 0.25rem; margin-right: 1rem; }
+    .opt-label { display: flex; align-items: center; gap: 0.5rem; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; cursor: pointer; transition: color 0.2s; }
+    .opt-label:hover { color: #fff; }
+    .opt-label.blue:hover { color: #60a5fa; }
+    .opt-label.purple:hover { color: #c084fc; }
+    .opt-checkbox { height: 0.75rem; width: 0.75rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .btn-export { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; color: #e2e8f0; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-export:hover { background: #334155; }
+    .btn-export .material-icons-outlined { font-size: 1.125rem; color: #fbbf24; }
+
+    .btn-deploy { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; font-style: italic; color: #fff; background: #2563eb; border: none; padding: 0.5rem 1.5rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-deploy:hover:not(:disabled) { background: #3b82f6; }
+    .btn-deploy:disabled { background: #334155; cursor: not-allowed; opacity: 0.7; }
+    .btn-deploy .material-icons-outlined { font-size: 1.125rem; }
+
+    /* ── Canvas Area ───────────────────────────── */
+    .viewport { display: flex; flex: 1; overflow: hidden; position: relative; }
+    .canvas-container { flex: 1; background: #0b1120; position: relative; overflow: hidden; cursor: crosshair; }
+    #konva-holder { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 32px 32px; }
+
+    .zoom-controls { position: absolute; bottom: 1.5rem; right: 21rem; display: flex; gap: 0.25rem; background: rgba(15,23,42,0.8); backdrop-filter: blur(8px); padding: 0.25rem; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.05); }
+    .zoom-btn { width: 2rem; height: 2rem; border-radius: 50%; border: none; background: transparent; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .zoom-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .zoom-val { padding: 0 0.5rem; display: flex; align-items: center; font-size: 10px; font-family: monospace; color: #64748b; }
+
+    .canvas-footer { position: absolute; bottom: 1.5rem; left: 1.5rem; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #64748b; opacity: 0.4; }
+
+    .floating-toolbox { position: absolute; top: 1.5rem; left: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 10; }
+    .toolbox-inner { padding: 0.5rem; background: rgba(15,23,42,0.9); backdrop-filter: blur(12px); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+    .toolbox-btn { padding: 0.75rem; border-radius: 0.75rem; border: none; background: transparent; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .toolbox-btn:hover { background: rgba(255,255,255,0.05); }
+    .toolbox-btn.blue { color: #60a5fa; opacity: 0.6; }
+    .toolbox-btn.blue:hover { color: #60a5fa; background: rgba(59,130,246,0.2); opacity: 1; }
+    .toolbox-btn.emerald { color: #34d399; opacity: 0.6; }
+    .toolbox-btn.emerald:hover { color: #34d399; background: rgba(16,185,129,0.2); opacity: 1; }
+    .toolbox-btn.purple { color: #c084fc; opacity: 0.6; }
+    .toolbox-btn.purple:hover { color: #c084fc; background: rgba(168,85,247,0.2); opacity: 1; }
+    .tool-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 0 0.5rem; }
+
+    /* ── Property Panel ────────────────────────── */
+    .prop-panel { width: 20rem; background: rgba(15,23,42,0.6); backdrop-filter: blur(12px); border-left: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; z-index: 20; }
+    .prop-header { height: 3.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 1.5rem; background: rgba(37,99,235,0.05); }
+    .prop-header-icon { color: #60a5fa; margin-right: 0.5rem; font-size: 1.125rem; }
+    .prop-header-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #cbd5e1; }
+
+    .prop-body { flex: 1; overflow-y: auto; padding: 1.5rem; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    .prop-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #475569; opacity: 0.4; }
+    .empty-icon-wrap { width: 5rem; height: 5rem; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+    .empty-icon { font-size: 2.25rem; }
+    .empty-text { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; line-height: 1.5; }
+
+    .prop-section { margin-bottom: 2.5rem; }
+    .section-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(59,130,246,0.6); display: block; margin-bottom: 0.75rem; }
+    .section-label.purple { color: rgba(168,85,247,0.6); }
+    .section-label.slate { color: #64748b; }
+
+    .input-wrap { position: relative; }
+    .text-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; font-size: 0.875rem; color: #fff; font-weight: 900; outline: none; transition: all 0.2s; box-sizing: border-box; }
+    .text-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
+    .input-icon { position: absolute; right: 0.75rem; top: 0.75rem; color: #334155; }
+    .input-wrap:hover .input-icon { color: #3b82f6; }
+
+    .flex-row-sb { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 1rem; }
+    .btn-add { display: flex; align-items: center; gap: 0.25rem; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; background: rgba(59,130,246,0.1); color: #60a5fa; border: none; padding: 0.375rem 0.75rem; border-radius: 9999px; cursor: pointer; transition: all 0.2s; }
+    .btn-add:hover { background: #3b82f6; color: #fff; }
+    .btn-add.purple { background: rgba(168,85,247,0.1); color: #c084fc; }
+    .btn-add.purple:hover { background: #a855f7; color: #fff; }
+
+    .field-card { p: 1rem; background: rgba(255,255,255,0.02); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; position: relative; overflow: hidden; margin-bottom: 0.75rem; }
+    .field-card:hover { border-color: rgba(59,130,246,0.3); }
+    .field-accent { position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: rgba(59,130,246,0.2); transition: background 0.2s; }
+    .field-card:hover .field-accent { background: #3b82f6; }
+    .field-accent.purple { background: rgba(168,85,247,0.2); }
+    .field-card:hover .field-accent.purple { background: #a855f7; }
+
+    .field-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .field-name-input { flex: 1; background: transparent; border: none; font-size: 0.875rem; font-weight: 900; color: #fff; outline: none; text-transform: uppercase; letter-spacing: -0.025em; padding: 0; }
+    .field-actions { display: flex; align-items: center; gap: 0.25rem; }
+    .action-btn { background: transparent; border: none; padding: 0.375rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; color: #475569; }
+    .action-btn:hover { background: rgba(255,255,255,0.05); color: #60a5fa; }
+    .action-btn.red:hover { color: #f87171; background: rgba(239,68,68,0.1); }
+    .action-btn.active { color: #60a5fa; }
+
+    .field-controls { display: flex; align-items: center; gap: 0.5rem; }
+    .type-select { flex: 1; background: #1e293b; font-size: 10px; font-weight: 700; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; outline: none; cursor: pointer; transition: all 0.2s; }
+    .type-select:hover { border-color: rgba(59,130,246,0.5); color: #fff; }
+    .type-select option { background: #0f172a; color: #f1f5f9; padding: 10px; }
+    .btn-toggle { padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; }
+    .btn-toggle.active { background: #2563eb; color: #fff; }
+    .btn-toggle.inactive { background: rgba(255,255,255,0.05); color: #475569; }
+
+    .rules-panel { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); }
+    .rules-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .rules-label { font-size: 9px; color: #60a5fa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.25rem; }
+    .rules-label .material-icons-outlined { font-size: 0.75rem; }
+    .btn-add-rule { background: transparent; border: none; font-size: 9px; font-weight: 900; color: #34d399; cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em; }
+    .btn-add-rule:hover { color: #6ee7b7; }
+
+    .rule-item { background: rgba(0,0,0,0.6); padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.5rem; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
+    .rule-row { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.5rem; }
+    .rule-type { background: transparent; border: none; font-size: 9px; font-weight: 900; color: #93c5fd; text-transform: uppercase; outline: none; }
+    .rule-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 10px; color: #cbd5e1; font-family: monospace; box-sizing: border-box; }
+    .rule-error { width: 100%; background: transparent; border: none; font-size: 9px; color: #64748b; font-style: italic; font-weight: 500; outline: none; margin-top: 0.25rem; }
+
+    .rel-header { display: flex; align-items: center; gap: 0.25rem; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #a78bfa; }
+    .rel-header .material-icons-outlined { font-size: 1rem; transform: rotate(90deg) scaleX(-1); }
+    .rel-select { width: 100%; background: #1e293b; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); padding: 0.625rem 0.75rem; color: #fff; outline: none; margin-bottom: 0.75rem; cursor: pointer; }
+    .rel-select option { background: #0f172a; color: #f1f5f9; }
+    .rel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .rel-type-select { background: #1e293b; font-size: 9px; font-weight: 900; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; color: #c084fc; outline: none; text-transform: uppercase; cursor: pointer; }
+    .rel-type-select option { background: #0f172a; color: #f1f5f9; }
+    .rel-alias { background: #1e293b; font-size: 9px; font-family: monospace; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem; color: #fff; outline: none; text-transform: uppercase; }
+
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+    .animate-pulse { animation: pulse 2s infinite; }
+    .animate-slideDown { animation: slideDown 0.2s ease-out; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes slideDown { from { opacity: 0; height: 0; } to { opacity: 1; height: auto; } }
+
+    .text-glow { text-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+    .box-glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
+
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  `],
   template: `
-    <div class="flex flex-col h-[calc(100vh-64px)] bg-[#0B1120] text-slate-200 overflow-hidden font-sans">
+    <div class="designer-container">
       <!-- Toolbar -->
-      <div class="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/80 backdrop-blur-xl z-20 shadow-2xl">
-        <div class="flex items-center space-x-6">
-          <div class="flex items-center space-x-3">
-             <div class="p-2 bg-blue-500/10 rounded-xl shadow-inner shadow-blue-500/20">
-                <span class="material-icons-outlined text-blue-400 text-lg text-glow">schema</span>
-             </div>
-             <div>
-                <h2 class="text-sm font-black text-white tracking-widest uppercase">Entity Architect</h2>
-                <div class="text-[9px] text-slate-500 font-mono tracking-tighter opacity-60">v4.1.0 // {{ projectId | slice:0:8 }}</div>
-             </div>
+      <header class="toolbar">
+        <div class="toolbar-left">
+          <div class="brand">
+            <div class="brand-icon-wrap">
+              <span class="material-icons-outlined brand-icon text-glow">schema</span>
+            </div>
+            <div>
+              <h2 class="brand-title">Entity Architect</h2>
+              <div class="brand-sub">v4.1.0 // {{ projectId | slice:0:8 }}</div>
+            </div>
           </div>
-          <div class="w-px h-8 bg-white/10 mx-2"></div>
-          <div class="flex items-center space-x-1 p-1 bg-black/20 rounded-xl box-glow-blue">
-            <button (click)="addEntity()" class="group flex items-center space-x-2 text-xs hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 px-4 py-1.5 rounded-lg transition-all active:scale-95">
-              <span class="material-icons-outlined text-lg">add_box</span>
-              <span class="font-bold">New Entity</span>
+          <div class="v-divider"></div>
+          <div class="btn-group box-glow-blue">
+            <button (click)="addEntity()" class="tool-btn blue">
+              <span class="material-icons-outlined">add_box</span>
+              New Entity
             </button>
-            <button [routerLink]="['/projects', projectId, 'security']" class="group flex items-center space-x-2 text-xs hover:bg-purple-600/20 text-slate-400 hover:text-purple-400 px-4 py-1.5 rounded-lg transition-all">
-              <span class="material-icons-outlined text-lg">admin_panel_settings</span>
-              <span class="font-bold">Security</span>
+            <button (click)="showAiModal = true" class="tool-btn violet">
+              <span class="material-icons-outlined">auto_awesome</span>
+              AI Generate
             </button>
-            <button [routerLink]="['/projects', projectId, 'pages']" class="group flex items-center space-x-2 text-xs hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 px-4 py-1.5 rounded-lg transition-all">
-              <span class="material-icons-outlined text-lg text-blue-500">dashboard_customize</span>
-              <span class="font-bold">Pages</span>
+            <button [routerLink]="['/projects', projectId, 'security']" class="tool-btn purple">
+              <span class="material-icons-outlined">admin_panel_settings</span>
+              Security
             </button>
-            <button [routerLink]="['/projects', projectId, 'enums']" class="group flex items-center space-x-2 text-xs hover:bg-amber-600/20 text-slate-400 hover:text-amber-400 px-4 py-1.5 rounded-lg transition-all">
-              <span class="material-icons-outlined text-lg text-amber-500">list_alt</span>
-              <span class="font-bold">Enums</span>
+            <button [routerLink]="['/projects', projectId, 'pages']" class="tool-btn blue">
+              <span class="material-icons-outlined">dashboard_customize</span>
+              Pages
             </button>
-            <button [routerLink]="['/projects', projectId, 'workflows']" class="group flex items-center space-x-2 text-xs hover:bg-green-600/20 text-slate-400 hover:text-green-400 px-4 py-1.5 rounded-lg transition-all">
-              <span class="material-icons-outlined text-lg">account_tree</span>
-              <span class="font-bold">Workflows</span>
+            <button [routerLink]="['/projects', projectId, 'enums']" class="tool-btn amber">
+              <span class="material-icons-outlined">list_alt</span>
+              Enums
+            </button>
+            <button [routerLink]="['/projects', projectId, 'workflows']" class="tool-btn green">
+              <span class="material-icons-outlined">account_tree</span>
+              Workflows
+            </button>
+            
+            <!-- Manual UI Toggle Button -->
+            <button (click)="toggleUiMode()" class="tool-btn blue" [class.green]="usePremiumUi" style="border: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
+              <span class="material-icons-outlined">{{ usePremiumUi ? 'grid_view' : 'view_headline' }}</span>
+              {{ usePremiumUi ? 'Switch to Legacy' : 'Switch to Premium' }}
             </button>
           </div>
         </div>
-        <div class="flex items-center space-x-3">
-          <button (click)="save()" class="group flex items-center space-x-2 text-xs text-slate-400 hover:text-white px-4 py-2 rounded-lg transition-all hover:bg-white/5 active:scale-95">
-            <span class="material-icons-outlined text-lg group-hover:animate-pulse">save</span>
-            <span class="font-bold uppercase tracking-widest text-[10px]">Commit</span>
+
+        <div class="toolbar-right">
+          <button (click)="save()" class="btn-commit">
+            <span class="material-icons-outlined" [class.animate-pulse]="!isPublishing">save</span>
+            Commit
           </button>
           
-          <div class="h-6 w-px bg-white/10 mx-2"></div>
+          <div class="v-divider"></div>
 
-          <div class="flex flex-col space-y-1 mr-4">
-            <label class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-blue-400 transition-colors">
-              <input type="checkbox" [(ngModel)]="buildOptions.includeUI" class="form-checkbox h-3 w-3 text-blue-600 bg-black/40 border-white/10 rounded">
-              <span>UI</span>
+          <div class="options-stack">
+            <label class="opt-label blue">
+              <input type="checkbox" [(ngModel)]="buildOptions.includeUI" class="opt-checkbox">
+              UI
             </label>
-            <label class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-purple-400 transition-colors">
-              <input type="checkbox" [(ngModel)]="buildOptions.enableAIEnabledDocs" class="form-checkbox h-3 w-3 text-purple-600 bg-black/40 border-white/10 rounded">
-              <span>AI Docs</span>
+            <label class="opt-label purple">
+              <input type="checkbox" [(ngModel)]="buildOptions.enableAIEnabledDocs" class="opt-checkbox">
+              AI Docs
             </label>
           </div>
 
-          <button (click)="buildAsZip()" class="group flex items-center space-x-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 px-4 py-2 rounded-xl transition-all shadow-xl active:scale-95">
-             <span class="material-icons-outlined text-lg text-amber-400 group-hover:rotate-12 transition-transform">folder_zip</span>
-             <span class="font-bold tracking-tight">Export Code</span>
+          <button (click)="buildAsZip()" class="btn-export">
+             <span class="material-icons-outlined">folder_zip</span>
+             Export Code
           </button>
 
-          <button (click)="publish()" [disabled]="isPublishing" class="group flex items-center space-x-2 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white px-6 py-2 rounded-xl shadow-lg shadow-blue-900/50 transition-all active:scale-95">
-             <span class="material-icons-outlined text-lg group-hover:scale-110 transition-transform">{{ isPublishing ? 'sync' : 'bolt' }}</span>
-             <span class="font-black uppercase tracking-widest italic">{{ isPublishing ? 'Deploying...' : 'Build & Deploy' }}</span>
+          <button (click)="publish()" [disabled]="isPublishing" class="btn-deploy">
+             <span class="material-icons-outlined" [class.spin]="isPublishing">{{ isPublishing ? 'sync' : 'bolt' }}</span>
+             {{ isPublishing ? 'Deploying...' : 'Build & Deploy' }}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div class="flex flex-1 overflow-hidden relative">
-        <!-- Floating Toolbox (Left) -->
-        <div class="absolute top-6 left-6 flex flex-col space-y-2 z-10 animate-fadeIn">
-          <div class="glass-dark p-2 rounded-2xl shadow-2xl flex flex-col space-y-4 border border-white/10">
-            <button class="p-3 rounded-xl hover:bg-blue-600/30 text-blue-400/60 hover:text-blue-400 transition-all active:scale-90" title="Select Tool">
-               <span class="material-icons-outlined text-xl">near_me</span>
-            </button>
-            <button (click)="addEntity()" class="p-3 rounded-xl hover:bg-emerald-600/30 text-emerald-400/60 hover:text-emerald-400 transition-all active:scale-90" title="Entity Tool">
-               <span class="material-icons-outlined text-xl">rectangle</span>
-            </button>
-            <button class="p-3 rounded-xl hover:bg-purple-600/30 text-purple-400/60 hover:text-purple-400 transition-all active:scale-90" title="Relation Tool">
-               <span class="material-icons-outlined text-xl">timeline</span>
-            </button>
-            <div class="h-px bg-white/5 mx-2"></div>
-            <button class="p-3 rounded-xl hover:bg-white/5 text-slate-600 transition-all" title="Pan Mode">
-               <span class="material-icons-outlined text-xl">pan_tool</span>
-            </button>
-          </div>
-        </div>
-
+      <div class="viewport">
         <!-- Canvas (Center) -->
-        <div #canvasContainer class="flex-1 bg-[#0B1120] relative overflow-hidden cursor-crosshair">
-           <div id="konva-holder" class="absolute inset-0"></div>
-           
-           <!-- Zoom Controls -->
-           <div class="absolute bottom-6 right-80 flex space-x-1 glass p-1 rounded-full border border-white/5">
-              <button class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-all"><span class="material-icons-outlined text-sm">remove</span></button>
-              <div class="px-2 flex items-center text-[10px] font-mono text-slate-500 tracking-tighter">100%</div>
-              <button class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-all"><span class="material-icons-outlined text-sm">add</span></button>
+        <div #canvasContainer class="canvas-container" [class.fullscreen]="isFullScreen">
+           <!-- Floating Toolbox (Left) inside Canvas so it displays in Full Screen -->
+           <div class="floating-toolbox animate-fadeIn" *ngIf="usePremiumUi">
+             <div class="toolbox-inner">
+               <button class="toolbox-btn blue" title="Select Tool">
+                  <span class="material-icons-outlined">near_me</span>
+               </button>
+               <button (click)="addEntity()" class="toolbox-btn emerald" title="Entity Tool">
+                  <span class="material-icons-outlined">rectangle</span>
+               </button>
+               <button class="toolbox-btn purple" title="Relation Tool">
+                  <span class="material-icons-outlined">timeline</span>
+               </button>
+               <div class="tool-sep"></div>
+               <button class="toolbox-btn" title="Pan Mode (Drag Background)" style="color:#60a5fa">
+                  <span class="material-icons-outlined" style="font-size:1.1rem">pan_tool</span>
+               </button>
+             </div>
            </div>
 
-           <div class="absolute bottom-6 left-6 text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] opacity-40">
+           <div id="konva-holder"></div>
+           
+           <!-- Zoom Controls -->
+           <div class="zoom-controls" [style.right.px]="isFullScreen ? 24 : (sidebarWidth + 24)">
+              <button (click)="zoomOut()" class="zoom-btn" title="Zoom Out"><span class="material-icons-outlined" style="font-size:14px">remove</span></button>
+              <div class="zoom-val">{{ zoomPercentage }}%</div>
+              <button (click)="zoomIn()" class="zoom-btn" title="Zoom In"><span class="material-icons-outlined" style="font-size:14px">add</span></button>
+              <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 0.25rem;"></div>
+              <button (click)="toggleFullScreen()" class="zoom-btn" title="Toggle Full Screen">
+                <span class="material-icons-outlined" style="font-size:14px">
+                  {{ isFullScreen ? 'fullscreen_exit' : 'fullscreen' }}
+                </span>
+              </button>
+           </div>
+
+           <div class="canvas-footer">
               Platform Canvas // Accelerated Graphics Ready
            </div>
         </div>
 
         <!-- Property Panel (Right) -->
-        <aside class="w-80 glass-dark border-l border-white/5 flex flex-col shadow-2xl z-20 overflow-hidden">
-          <div class="h-14 border-b border-white/5 flex items-center px-6 bg-blue-600/5 backdrop-blur-md">
-            <span class="material-icons-outlined text-blue-400 mr-2 text-lg text-glow animate-pulse">tune</span>
-            <span class="font-black text-[10px] uppercase tracking-widest text-slate-300">Property Inspector</span>
+        <aside class="prop-panel" [style.width.px]="sidebarWidth">
+          <div class="prop-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+              <span class="material-icons-outlined prop-header-icon text-glow animate-pulse">tune</span>
+              <span class="prop-header-title">Property Inspector</span>
+            </div>
+            <button (click)="toggleSidebar()" class="action-btn" style="color: #60a5fa;" title="Expand/Collapse Sidebar">
+              <span class="material-icons-outlined">
+                {{ isSidebarExpanded ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left' }}
+              </span>
+            </button>
           </div>
 
-          <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+          <div class="prop-body">
             
-            <div *ngIf="!selectedNode" class="flex flex-col items-center justify-center h-full text-slate-600 opacity-40">
-               <div class="w-20 h-20 rounded-full border-2 border-dashed border-white/5 flex items-center justify-center mb-6">
-                 <span class="material-icons-outlined text-4xl">fingerprint</span>
+            <div *ngIf="!selectedNode" class="prop-empty">
+               <div class="empty-icon-wrap">
+                 <span class="material-icons-outlined empty-icon">fingerprint</span>
                </div>
-               <p class="text-[10px] font-black uppercase tracking-widest text-center">Select an entity<br>on the canvas to proceed</p>
+               <p class="empty-text">Select an entity<br>on the canvas to proceed</p>
             </div>
 
-            <div *ngIf="selectedNode" class="space-y-10 animate-fadeIn">
+            <div *ngIf="selectedNode" class="animate-fadeIn">
               <!-- Identity -->
-              <div class="space-y-3">
-                <label class="text-[10px] uppercase tracking-[0.2em] font-black text-blue-500/60 block">Core Identification</label>
-                <div class="relative group">
-                   <input type="text" [(ngModel)]="selectedNode.name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-black focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder-slate-700 shadow-inner">
-                   <div class="absolute right-3 top-3 text-slate-700 group-hover:text-blue-500 transition-colors">
-                      <span class="material-icons-outlined text-lg">edit</span>
-                   </div>
+              <div class="prop-section">
+                <label class="section-label">Core Identification</label>
+                <div class="input-wrap">
+                   <input type="text" [(ngModel)]="selectedNode.name" (ngModelChange)="redrawCanvas()" class="text-input" placeholder="Entity Name">
+                   <span class="material-icons-outlined input-icon" style="font-size:18px">edit</span>
                 </div>
               </div>
 
               <!-- Fields -->
-              <div class="space-y-4">
-                <div class="flex items-center justify-between pb-2 border-b border-white/5">
-                   <label class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-500">Atomic Properties</label>
-                   <button (click)="addField()" class="flex items-center space-x-1 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-3 py-1.5 rounded-full transition-all active:scale-95 shadow-lg shadow-blue-900/20">
-                      <span class="material-icons-outlined text-xs">add</span>
-                      <span>Inject Field</span>
+              <div class="prop-section">
+                <div class="flex-row-sb">
+                   <label class="section-label slate">Atomic Properties</label>
+                   <button (click)="addField()" class="btn-add">
+                      <span class="material-icons-outlined" style="font-size:12px">add</span>
+                      Inject Field
                    </button>
                 </div>
                 
-                <div class="space-y-3">
-                   <div *ngFor="let field of selectedNode.fields; let i = index" class="p-4 bg-white/[0.02] rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all group relative overflow-hidden">
-                      <div class="absolute top-0 left-0 w-1 h-full bg-blue-500/20 group-hover:bg-blue-500 transition-colors"></div>
+                <div class="field-stack">
+                   <div *ngFor="let field of selectedNode.fields; let i = index" class="field-card">
+                      <div class="field-accent" [class.purple]="usePremiumUi"></div>
                       
-                      <!-- Field Row 1 -->
-                      <div class="flex items-center justify-between mb-3">
-                        <input type="text" [(ngModel)]="field.name" class="flex-1 bg-transparent border-none text-sm font-black text-white focus:outline-none placeholder-slate-700 uppercase tracking-tight" placeholder="PROPERTY_NAME">
+                      <div class="field-row">
+                        <input type="text" [(ngModel)]="field.name" (ngModelChange)="redrawCanvas()" class="field-name-input" placeholder="PROPERTY_NAME">
                         
-                        <div class="flex items-center space-x-1">
-                            <button (click)="field.isRulesOpen = !field.isRulesOpen" [class.text-blue-400]="field.rules?.length > 0" class="text-slate-600 hover:text-blue-400 p-1.5 rounded-lg hover:bg-white/5 transition-all" title="Validation Rules">
-                              <span class="material-icons-outlined text-base">verified</span>
+                        <div class="field-actions">
+                            <button (click)="field.isRulesOpen = !field.isRulesOpen" [class.active]="field.rules?.length > 0" class="action-btn" title="Validation Rules">
+                              <span class="material-icons-outlined" style="font-size:16px">verified</span>
                             </button>
-                            <button (click)="removeField(i)" class="text-slate-600 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100">
-                              <span class="material-icons-outlined text-base">delete_sweep</span>
+                            <button (click)="removeField(i)" class="action-btn red">
+                              <span class="material-icons-outlined" style="font-size:16px">delete_sweep</span>
                             </button>
                         </div>
                       </div>
                       
-                      <!-- Field Row 2 -->
-                      <div class="flex items-center space-x-2">
-                        <select [(ngModel)]="field.type" class="flex-1 bg-black/40 text-[10px] font-bold rounded-lg border border-white/5 px-3 py-2 focus:border-blue-500 outline-none text-slate-400 uppercase tracking-widest appearance-none">
+                      <div class="field-controls">
+                        <select [(ngModel)]="field.type" (ngModelChange)="redrawCanvas()" class="type-select">
                           <option value="string">String</option>
                           <option value="int">Integer</option>
                           <option value="guid">Guid</option>
@@ -180,83 +359,80 @@ import { ApiService } from '../../services/api';
                           <option value="decimal">Decimal</option>
                           <option value="bool">Boolean</option>
                         </select>
-                        <button (click)="field.isRequired = !field.isRequired" 
-                                [class.bg-blue-600]="field.isRequired" 
-                                [class.text-white]="field.isRequired"
-                                [class.bg-white/5]="!field.isRequired"
-                                [class.text-slate-600]="!field.isRequired"
-                                class="px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all border border-white/5">
+                        <button (click)="field.isRequired = !field.isRequired; redrawCanvas()" 
+                                [class.active]="field.isRequired" 
+                                [class.inactive]="!field.isRequired"
+                                class="btn-toggle">
                            Mandatory
                         </button>
                       </div>
 
-                      <!-- Validation Rules Panel -->
-                      <div *ngIf="field.isRulesOpen" class="mt-4 pt-4 border-t border-white/5 animate-slideDown space-y-4">
-                          <div class="flex items-center justify-between">
-                               <span class="text-[9px] text-blue-400 font-bold uppercase tracking-widest italic flex items-center"><span class="material-icons-outlined text-xs mr-1 text-[10px]">shield</span> Guards</span>
-                               <button (click)="addRule(field)" class="text-[9px] font-black text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest">+ New Guard</button>
+                      <!-- Rules -->
+                      <div *ngIf="field.isRulesOpen" class="rules-panel animate-slideDown">
+                          <div class="rules-header">
+                               <span class="rules-label"><span class="material-icons-outlined">shield</span> Guards</span>
+                               <button (click)="addRule(field)" class="btn-add-rule">+ New Guard</button>
                           </div>
-                          <div class="space-y-2">
-                              <div *ngFor="let rule of field.rules; let ri = index" class="bg-black/60 p-3 rounded-xl border border-white/5 shadow-inner">
-                                  <div class="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
-                                      <select [(ngModel)]="rule.type" class="bg-transparent text-[9px] font-black text-blue-300 border-none px-0 py-0 uppercase focus:ring-0">
+                          <div class="rule-stack">
+                              <div *ngFor="let rule of field.rules; let ri = index" class="rule-item">
+                                  <div class="rule-row">
+                                      <select [(ngModel)]="rule.type" (ngModelChange)="redrawCanvas()" class="rule-type">
                                           <option value="Regex">Pattern</option>
                                           <option value="Range">Limit</option>
                                           <option value="Email">Mail</option>
                                           <option value="Phone">Tel</option>
                                       </select>
-                                      <button (click)="removeRule(field, ri)" class="text-slate-600 hover:text-red-400">
-                                          <span class="material-icons-outlined text-base">remove_circle_outline</span>
+                                      <button (click)="removeRule(field, ri)" style="background:none;border:none;color:#475569;cursor:pointer">
+                                          <span class="material-icons-outlined" style="font-size:16px">remove_circle_outline</span>
                                       </button>
                                   </div>
-                                  <div *ngIf="rule.type === 'Regex' || rule.type === 'Range'" class="mb-2">
-                                      <input type="text" [(ngModel)]="rule.value" placeholder="Definition..." class="w-full bg-black/40 text-[10px] rounded-lg border border-white/5 px-3 py-2 text-slate-300 font-mono">
+                                  <div *ngIf="rule.type === 'Regex' || rule.type === 'Range'">
+                                      <input type="text" [(ngModel)]="rule.value" (ngModelChange)="redrawCanvas()" placeholder="Definition..." class="rule-input">
                                   </div>
-                                  <input type="text" [(ngModel)]="rule.errorMessage" placeholder="Fault message..." class="w-full bg-transparent text-[9px] px-0 py-1 text-slate-500 italic font-medium focus:text-slate-300 focus:outline-none transition-colors border-none">
+                                  <input type="text" [(ngModel)]="rule.errorMessage" (ngModelChange)="redrawCanvas()" placeholder="Fault message..." class="rule-error">
                               </div>
                           </div>
                       </div>
-
                    </div>
                 </div>
               </div>
 
               <!-- Relationships -->
-              <div class="space-y-4">
-                <div class="flex items-center justify-between pb-2 border-b border-white/5">
-                   <label class="text-[10px] uppercase tracking-[0.2em] font-black text-purple-500/60">Semantic Links</label>
-                   <button (click)="addRelation()" class="flex items-center space-x-1 text-[9px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-400 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded-full transition-all active:scale-95 shadow-lg shadow-purple-900/20">
-                      <span class="material-icons-outlined text-xs">link</span>
-                      <span>Attach Link</span>
+              <div class="prop-section">
+                <div class="flex-row-sb">
+                   <label class="section-label purple">Semantic Links</label>
+                   <button (click)="addRelation()" class="btn-add purple">
+                      <span class="material-icons-outlined" style="font-size:12px">link</span>
+                      Attach Link
                    </button>
                 </div>
 
-                <div class="space-y-3">
-                   <div *ngFor="let rel of selectedNode.relations; let i = index" class="p-4 bg-purple-500/[0.02] rounded-2xl border border-purple-500/10 hover:border-purple-500 transition-all group relative overflow-hidden">
-                      <div class="absolute top-0 left-0 w-1 h-full bg-purple-500/20 group-hover:bg-purple-500 transition-colors"></div>
+                <div class="relation-stack">
+                   <div *ngFor="let rel of selectedNode.relations; let i = index" class="field-card">
+                      <div class="field-accent purple"></div>
                       
-                      <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center space-x-1 text-[10px] font-black uppercase tracking-widest text-purple-400">
-                            <span class="material-icons-outlined text-base rotate-90 scale-x-[-1]">shortcut</span>
+                      <div class="field-row">
+                        <div class="rel-header">
+                            <span class="material-icons-outlined">shortcut</span>
                             <span>Direct To</span>
                         </div>
-                        <button (click)="removeRelation(i)" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1">
-                            <span class="material-icons-outlined text-base">close</span>
+                        <button (click)="removeRelation(i)" class="action-btn red">
+                            <span class="material-icons-outlined" style="font-size:16px">close</span>
                         </button>
                       </div>
                       
-                      <select [(ngModel)]="rel.targetEntity" class="w-full bg-black/40 text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5 px-3 py-2.5 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none text-white mb-3 appearance-none">
+                      <select [(ngModel)]="rel.targetEntity" (ngModelChange)="redrawCanvas()" class="rel-select">
                          <option value="" disabled selected>Target Domain</option>
                          <option *ngFor="let target of entities" [value]="target.name">{{ target.name | uppercase }}</option>
                       </select>
 
-                      <div class="grid grid-cols-2 gap-3">
-                          <select [ngModel]="rel.type" (ngModelChange)="rel.type = +$event" class="bg-black/60 text-[9px] font-black rounded-lg border border-white/10 px-2 py-2 text-purple-300 focus:ring-0 outline-none appearance-none uppercase tracking-tighter">
+                      <div class="rel-grid">
+                          <select [ngModel]="rel.type" (ngModelChange)="rel.type = +$event; redrawCanvas()" class="rel-type-select">
                             <option [value]="0">ONE TO MANY</option>
                             <option [value]="1">MANY TO ONE</option>
                             <option [value]="2">MANY TO MANY</option>
                           </select>
-                          <input type="text" [(ngModel)]="rel.navPropName" placeholder="ALIAS" class="bg-black/60 text-[9px] font-mono rounded-lg border border-white/10 px-3 py-2 text-white focus:border-purple-500 outline-none uppercase placeholder-slate-700">
+                          <input type="text" [(ngModel)]="rel.navPropName" (ngModelChange)="redrawCanvas()" placeholder="ALIAS" class="rel-alias">
                       </div>
                    </div>
                 </div>
@@ -267,39 +443,55 @@ import { ApiService } from '../../services/api';
         </aside>
       </div>
     </div>
-  `,
-  styles: [`
-    #konva-holder {
-      background-image: 
-        radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
-      background-size: 32px 32px;
-    }
-    .text-glow {
-      filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
-    }
-  `],
+
+    <!-- AI Generate Modal -->
+    <app-ai-generate-modal
+      *ngIf="showAiModal"
+      title="✨ Generate Entities with AI"
+      subtitle="Describe your domain in plain language"
+      placeholder="e.g., An e-commerce system with products, categories, orders, customers and reviews"
+      mode="schema"
+      [projectId]="projectId!"
+      (accepted)="acceptGeneratedEntities($event)"
+      (cancel)="showAiModal = false">
+    </app-ai-generate-modal>
+  `
 })
 export class EntityDesigner implements AfterViewInit, OnDestroy {
   @ViewChild('canvasContainer') canvasContainer!: ElementRef;
 
-  readonly projectId: string | null = null;
+  projectId: string | null = null;
   stage!: Konva.Stage;
   layer!: Konva.Layer;
   entities: any[] = [];
   selectedNode: any = null;
   resizeHandler = this.onResize.bind(this);
   isPublishing = false;
+  showAiModal = false;
   buildOptions = {
     includeUI: true,
     enableAIEnabledDocs: true,
     standaloneAPI: false
   };
 
+  // UI Modes & Zoom Variables
+  usePremiumUi = false;
+  zoomLevel = 1.0;
+  zoomPercentage = 100;
+  sidebarWidth = 320;
+  isSidebarExpanded = false;
+  isFullScreen = false;
+  fullscreenChangeHandler = this.onFullscreenChange.bind(this);
+
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly api: ApiService
+    private readonly api: ApiService,
+    private readonly projectContext: ProjectContextService
   ) {
     this.projectId = this.route.snapshot.paramMap.get('projectId');
+    if (this.projectId) {
+      this.projectContext.setProjectId(this.projectId);
+    }
   }
 
   ngAfterViewInit() {
@@ -319,19 +511,113 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       this.layer = new Konva.Layer();
       this.stage.add(this.layer);
 
+      // Add wheel listener for mouse wheel zoom (Premium UI only)
+      this.stage.on('wheel', (e) => {
+        if (!this.usePremiumUi) return;
+        e.evt.preventDefault();
+
+        const scaleBy = 1.05;
+        const oldScale = this.stage.scaleX();
+        const pointer = this.stage.getPointerPosition();
+        if (!pointer) return;
+
+        const mousePointTo = {
+          x: (pointer.x - this.stage.x()) / oldScale,
+          y: (pointer.y - this.stage.y()) / oldScale,
+        };
+
+        const direction = e.evt.deltaY > 0 ? -1 : 1;
+        const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+        if (newScale < 0.2 || newScale > 3.0) return;
+
+        this.stage.scale({ x: newScale, y: newScale });
+
+        const newPos = {
+          x: pointer.x - mousePointTo.x * newScale,
+          y: pointer.y - mousePointTo.y * newScale,
+        };
+        this.stage.position(newPos);
+        
+        this.zoomLevel = newScale;
+        this.zoomPercentage = Math.round(newScale * 100);
+        this.stage.batchDraw();
+      });
+
       globalThis.addEventListener('resize', this.resizeHandler);
+      document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+      document.addEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
+      
       this.loadEntities();
     }, 100);
+  }
+
+  toggleUiMode() {
+    this.usePremiumUi = !this.usePremiumUi;
+    this.redrawCanvas();
+  }
+
+  toggleSidebar() {
+    this.isSidebarExpanded = !this.isSidebarExpanded;
+    this.sidebarWidth = this.isSidebarExpanded ? 480 : 320;
+  }
+
+  toggleFullScreen() {
+    if (!this.canvasContainer) return;
+    const element = this.canvasContainer.nativeElement;
+
+    if (!document.fullscreenElement) {
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if ((element as any).webkitRequestFullscreen) {
+        (element as any).webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+  }
+
+  onFullscreenChange() {
+    this.isFullScreen = !!document.fullscreenElement || !!(document as any).webkitFullscreenElement;
+    setTimeout(() => {
+      this.onResize();
+    }, 150);
+  }
+
+  zoomIn() {
+    this.setZoom(this.zoomLevel + 0.1);
+  }
+
+  zoomOut() {
+    this.setZoom(Math.max(0.2, this.zoomLevel - 0.1));
+  }
+
+  setZoom(value: number) {
+    this.zoomLevel = value;
+    this.zoomPercentage = Math.round(value * 100);
+    if (this.stage) {
+      this.stage.scale({ x: value, y: value });
+      this.layer.batchDraw();
+    }
   }
 
   loadEntities() {
     if (!this.projectId) return;
     this.api.getEntities(this.projectId).subscribe({
       next: (artifacts) => {
+        if (!artifacts || artifacts.length === 0) {
+          this.loadMocks();
+          return;
+        }
         this.entities = artifacts.map(art => {
           try {
             const meta = JSON.parse(art.content);
-            meta.id = art.id; // Keep artifact ID
+            meta._artifactId = art.id;
+            if (!meta.fields) meta.fields = [];
             if (!meta.relations) meta.relations = [];
             if (!meta.events) meta.events = { onCreate: true, onUpdate: true, onDelete: true };
             return meta;
@@ -341,10 +627,37 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
           }
         }).filter(x => x !== null);
 
-        this.layer.destroyChildren();
-        this.entities.forEach(meta => this.renderEntity(meta));
-      }
+        this.redrawCanvas();
+      },
+      error: () => this.loadMocks()
     });
+  }
+
+  loadMocks() {
+    this.entities = [
+      {
+        name: 'Patient',
+        fields: [
+          { name: 'Id', type: 'guid', isRequired: true },
+          { name: 'FullName', type: 'string', isRequired: true },
+          { name: 'DateOfBirth', type: 'datetime', isRequired: false }
+        ],
+        relations: [],
+        x: 100, y: 150
+      },
+      {
+        name: 'Appointment',
+        fields: [
+          { name: 'Id', type: 'guid', isRequired: true },
+          { name: 'ScheduledTime', type: 'datetime', isRequired: true }
+        ],
+        relations: [
+          { targetEntity: 'Patient', type: 1, navPropName: 'Patient' }
+        ],
+        x: 400, y: 150
+      }
+    ];
+    this.redrawCanvas();
   }
 
   onResize() {
@@ -363,15 +676,65 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       ],
       relations: [],
       events: { onCreate: true, onUpdate: true, onDelete: true },
-      x: 100,
-      y: 100
+      x: 150,
+      y: 150
     };
     this.entities.push(newMetadata);
-    this.renderEntity(newMetadata);
     this.selectedNode = newMetadata;
+    this.redrawCanvas();
+  }
+
+  acceptGeneratedEntities(generated: any) {
+    this.showAiModal = false;
+    const list = Array.isArray(generated) ? generated : [generated];
+    let xOffset = 100;
+    for (const entity of list) {
+      if (!entity.relations) entity.relations = [];
+      if (!entity.events) entity.events = { onCreate: true, onUpdate: true, onDelete: true };
+      entity.x = xOffset;
+      entity.y = 120;
+      xOffset += 240;
+      this.entities.push(entity);
+      if (this.projectId) {
+        this.api.createEntity(this.projectId, entity).subscribe();
+      }
+    }
+    this.selectedNode = list[list.length - 1];
+    this.redrawCanvas();
+  }
+
+  redrawCanvas() {
+    if (!this.layer) return;
+
+    // Clear any active polling sync intervals on children to prevent leaks
+    this.layer.getChildren().forEach(child => {
+      const intervalId = (child as any).syncInterval;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    });
+
+    this.layer.destroyChildren();
+
+    // 1. Render all Entity Nodes
+    this.entities.forEach(meta => this.renderEntity(meta));
+
+    // 2. Render all Relationship Lines
+    this.drawRelationships();
   }
 
   renderEntity(metadata: any) {
+    const isPremium = this.usePremiumUi;
+    const nodeWidth = isPremium ? 220 : 200;
+    
+    // Dynamic node height calculation based on fields
+    const headerHeight = isPremium ? 35 : 30;
+    const fieldHeight = 22;
+    const fieldsCount = metadata.fields?.length || 0;
+    const nodeHeight = isPremium 
+      ? headerHeight + (fieldsCount * fieldHeight) + 15 
+      : 70;
+
     const entityNode = new Konva.Group({
       x: metadata.x || 100,
       y: metadata.y || 100,
@@ -379,21 +742,21 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
     });
 
     const rect = new Konva.Rect({
-      width: 200,
-      height: 70,
+      width: nodeWidth,
+      height: nodeHeight,
       fill: '#0f172a',
-      stroke: '#3b82f6',
+      stroke: isPremium ? '#8b5cf6' : '#3b82f6',
       strokeWidth: 2,
       cornerRadius: 16,
       shadowBlur: 20,
-      shadowColor: '#3b82f6',
+      shadowColor: isPremium ? '#8b5cf6' : '#3b82f6',
       shadowOpacity: 0.1
     });
 
     const header = new Konva.Rect({
-      width: 200,
-      height: 30,
-      fill: '#3b82f6',
+      width: nodeWidth,
+      height: headerHeight,
+      fill: isPremium ? '#8b5cf6' : '#3b82f6',
       opacity: 0.1,
       cornerRadius: [16, 16, 0, 0]
     });
@@ -403,28 +766,52 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       fontSize: 10,
       fontFamily: 'Inter, sans-serif',
       fill: 'white',
-      width: 200,
+      width: nodeWidth,
       padding: 12,
       align: 'center',
       fontStyle: 'bold',
       letterSpacing: 2
     });
 
-    const countText = new Konva.Text({
-      text: (metadata.fields?.length || 0) + ' FIELDS',
-      fontSize: 8,
-      fontFamily: 'JetBrains Mono, monospace',
-      fill: '#475569',
-      width: 200,
-      y: 40,
-      align: 'center',
-      fontStyle: 'bold'
-    });
-
     entityNode.add(rect);
     entityNode.add(header);
     entityNode.add(title);
-    entityNode.add(countText);
+
+    if (isPremium) {
+      // Premium UI: Render visual field list with data types and key icons
+      if (metadata.fields) {
+        metadata.fields.forEach((field: any, index: number) => {
+          const isRequired = field.isRequired;
+          const isPK = field.name.toLowerCase() === 'id';
+          const badge = isPK ? '🔑' : (isRequired ? '🔸' : '🔹');
+          
+          const fieldText = new Konva.Text({
+            text: `${badge} ${field.name} : ${field.type}`,
+            fontSize: 9,
+            fontFamily: 'JetBrains Mono, monospace',
+            fill: '#cbd5e1',
+            x: 15,
+            y: headerHeight + (index * fieldHeight),
+            width: nodeWidth - 30,
+            align: 'left'
+          });
+          entityNode.add(fieldText);
+        });
+      }
+    } else {
+      // Legacy UI: Render simplified field summary
+      const countText = new Konva.Text({
+        text: (metadata.fields?.length || 0) + ' FIELDS',
+        fontSize: 8,
+        fontFamily: 'JetBrains Mono, monospace',
+        fill: '#475569',
+        width: nodeWidth,
+        y: 40,
+        align: 'center',
+        fontStyle: 'bold'
+      });
+      entityNode.add(countText);
+    }
 
     entityNode.on('mouseover', () => {
       rect.strokeWidth(3);
@@ -444,23 +831,94 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       this.selectedNode = metadata;
     });
 
+    entityNode.on('dragmove', () => {
+      metadata.x = entityNode.x();
+      metadata.y = entityNode.y();
+      this.drawRelationships();
+    });
+
     entityNode.on('dragend', () => {
       metadata.x = entityNode.x();
       metadata.y = entityNode.y();
+      this.drawRelationships();
     });
 
-    // Update visual sync
-    const intervalId = setInterval(() => {
-      if (title.text() !== metadata.name.toUpperCase()) {
-        title.text(metadata.name.toUpperCase());
-        countText.text((metadata.fields?.length || 0) + ' FIELDS');
-        this.layer.batchDraw();
-      }
-    }, 500);
-
-    (entityNode as any).syncInterval = intervalId;
-
     this.layer.add(entityNode);
+    this.layer.batchDraw();
+  }
+
+  drawRelationships() {
+    // Clear old connector lines
+    this.layer.find('.relationship-line').forEach(line => line.destroy());
+
+    // Only draw relationships in Premium Mode
+    if (!this.usePremiumUi) {
+      this.layer.batchDraw();
+      return;
+    }
+
+    this.entities.forEach(sourceEntity => {
+      if (!sourceEntity.relations) return;
+
+      sourceEntity.relations.forEach((rel: any) => {
+        if (!rel.targetEntity) return;
+
+        const targetEntity = this.entities.find(e => e.name === rel.targetEntity);
+        if (!targetEntity) return;
+
+        // Constants matching premium node size dimensions
+        const sourceWidth = 220;
+        const targetWidth = 220;
+
+        const sourceFieldsCount = sourceEntity.fields?.length || 0;
+        const sourceHeight = 35 + (sourceFieldsCount * 22) + 15;
+
+        const targetFieldsCount = targetEntity.fields?.length || 0;
+        const targetHeight = 35 + (targetFieldsCount * 22) + 15;
+
+        // Calculate center coordinates of entities
+        const x1 = (sourceEntity.x || 100) + sourceWidth / 2;
+        const y1 = (sourceEntity.y || 100) + sourceHeight / 2;
+
+        const x2 = (targetEntity.x || 100) + targetWidth / 2;
+        const y2 = (targetEntity.y || 100) + targetHeight / 2;
+
+        // Render line connector
+        const line = new Konva.Line({
+          points: [x1, y1, x2, y2],
+          stroke: '#8b5cf6',
+          strokeWidth: 2,
+          name: 'relationship-line',
+          dash: [5, 5],
+          opacity: 0.7
+        });
+
+        // Add visual link alias label
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+
+        const label = new Konva.Text({
+          text: rel.navPropName ? rel.navPropName.toUpperCase() : 'RELATION',
+          fontSize: 8,
+          fontFamily: 'JetBrains Mono, monospace',
+          fill: '#a78bfa',
+          x: midX - 60,
+          y: midY - 6,
+          width: 120,
+          align: 'center',
+          name: 'relationship-line',
+          fontStyle: 'bold'
+        });
+
+        this.layer.add(line);
+        this.layer.add(label);
+
+        // Send line elements to background behind entity group cards
+        line.moveToBottom();
+        label.moveToBottom();
+      });
+    });
+
     this.layer.batchDraw();
   }
 
@@ -468,12 +926,14 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
     if (this.selectedNode) {
       if (!this.selectedNode.fields) this.selectedNode.fields = [];
       this.selectedNode.fields.push({ name: 'NEW_PROPERTY', type: 'string', isRequired: false });
+      this.redrawCanvas();
     }
   }
 
   removeField(index: number) {
     if (this.selectedNode) {
       this.selectedNode.fields.splice(index, 1);
+      this.redrawCanvas();
     }
   }
 
@@ -486,12 +946,14 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
         navPropName: 'LINKED_OBJECT',
         foreignKeyName: ''
       });
+      this.redrawCanvas();
     }
   }
 
   removeRelation(index: number) {
     if (this.selectedNode?.relations) {
       this.selectedNode.relations.splice(index, 1);
+      this.redrawCanvas();
     }
   }
 
@@ -502,11 +964,13 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       value: '',
       errorMessage: 'Invalid property value'
     });
+    this.redrawCanvas();
   }
 
   removeRule(field: any, index: number) {
     if (field.rules) {
       field.rules.splice(index, 1);
+      this.redrawCanvas();
     }
   }
 
@@ -555,6 +1019,9 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     globalThis.removeEventListener('resize', this.resizeHandler);
+    document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+    document.removeEventListener('webkitfullscreenchange', this.fullscreenChangeHandler);
     if (this.stage) this.stage.destroy();
   }
 }
+

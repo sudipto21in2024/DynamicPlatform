@@ -15,7 +15,9 @@ public enum ArtifactType
     CustomObject = 8,
     Enum = 9,
     Form = 10,
-    Widget = 11
+    Widget = 11,
+    AiSkill = 12,   // Prompt templates, rules, system prompts (the Skill Library)
+    AiSession = 13  // Conversation history for a specific AI generation session
 }
 
 public class Artifact

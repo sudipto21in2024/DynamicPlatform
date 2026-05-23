@@ -7,7 +7,7 @@ using Elsa.Extensions;
 using Elsa.EntityFrameworkCore.Extensions;
 using Elsa.EntityFrameworkCore.Modules.Management;
 using Elsa.EntityFrameworkCore.Modules.Runtime;
-using Elsa.EntityFrameworkCore.PostgreSql;
+using Elsa.EntityFrameworkCore.Sqlite;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +31,7 @@ builder.Services.AddCors(options =>
 
 // DB Context
 builder.Services.AddDbContext<PlatformDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite("Data Source=platform.db"));
 
 // Repositories
 builder.Services.AddScoped<IArtifactRepository, ArtifactRepository>();
@@ -56,27 +56,43 @@ builder.Services.AddScoped<Platform.Engine.Interfaces.ICompatibilityProvider, Pl
 builder.Services.AddScoped<Platform.Engine.Interfaces.IMetadataNormalizationService, Platform.Engine.Services.MetadataNormalizationService>();
 builder.Services.AddScoped<Platform.Engine.Interfaces.IConnectivityHub, Platform.Engine.Services.ConnectivityHub>();
 builder.Services.AddScoped<Platform.Engine.Interfaces.IDataProvider, Platform.Engine.Services.DataExecution.ConnectorDataProvider>();
+builder.Services.AddScoped<Platform.Engine.Interfaces.IJobTrackingService, Platform.Engine.Services.JobTrackingService>();
 builder.Services.AddScoped<Platform.Engine.Services.DataExecution.DataExecutionEngine>();
 
-// AI Services
+// AI Services — OpenAI-compatible provider infrastructure
+builder.Services.AddHttpClient("AiProvider", (sp, client) =>
+{
+    client.Timeout = TimeSpan.FromSeconds(
+        builder.Configuration.GetValue("AiSettings:TimeoutSeconds", 120));
+});
+builder.Services.AddScoped<Platform.Core.Interfaces.ITenantAiProviderRepository,
+    Platform.Infrastructure.Data.Repositories.TenantAiProviderRepository>();
+builder.Services.AddScoped<Platform.Engine.Services.Ai.TenantAiProviderResolver>();
+builder.Services.AddScoped<Platform.Engine.Services.Ai.SchemaContextExtractor>();
+builder.Services.AddScoped<Platform.Engine.Services.Ai.AiSkillLibrary>();
+// Legacy Gemini service (kept for backwards compatibility)
 builder.Services.AddHttpClient<Platform.API.Services.GeminiService>();
 
 // Elsa Workflows 3.0 Integration
 builder.Services.AddElsa(elsa =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+    var connectionString = "Data Source=platform.db";
     
-    // Configure Management with EF Core & PostgreSQL
-    elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UsePostgreSql(connectionString)));
+    // Configure Management with EF Core & SQLite
+    elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UseSqlite(connectionString)));
     
-    // Configure Runtime with EF Core & PostgreSQL
-    elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UsePostgreSql(connectionString)));
+    // Configure Runtime with EF Core & SQLite
+    elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UseSqlite(connectionString)));
     
     // Enable API
     elsa.UseWorkflowsApi();
     
-    // Enable HTTP activities (Incoming webhooks etc)
-    elsa.UseHttp(http => http.ConfigureHttpOptions = options => options.BasePath = "/workflows");
+    // Enable HTTP activities
+    elsa.UseHttp(http => http.ConfigureHttpOptions = options => 
+    {
+        options.BasePath = "/workflows";
+        options.BaseUrl = new Uri("http://localhost:5018");
+    });
     
     // Enable JavaScript and Liquid expressions
     elsa.UseJavaScript();
@@ -109,7 +125,7 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
-        db.Database.EnsureCreated();
+        db.Database.Migrate();
     }
 }
 catch (Exception ex)

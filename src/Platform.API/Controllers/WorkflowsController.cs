@@ -28,18 +28,76 @@ public class WorkflowsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Artifact>> CreateWorkflow(Guid projectId, [FromBody] dynamic metadata)
+    public async Task<ActionResult<Artifact>> CreateWorkflow(Guid projectId, [FromBody] JsonElement metadata)
     {
         var jsonContent = JsonSerializer.Serialize(metadata);
+        string name = "New Workflow";
+        if (metadata.TryGetProperty("name", out var nameProp)) {
+            name = nameProp.GetString() ?? name;
+        }
+
         var artifact = new Artifact
         {
             ProjectId = projectId,
-            Name = metadata.GetProperty("name").GetString() ?? "New Workflow",
+            Name = name,
             Type = ArtifactType.Workflow,
             Content = jsonContent
         };
 
         await _repo.AddAsync(artifact);
         return Ok(artifact);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult> UpdateWorkflow(Guid projectId, Guid id, [FromBody] JsonElement metadata)
+    {
+        var existing = await _repo.GetByIdAsync(id);
+        if (existing == null || existing.ProjectId != projectId) return NotFound();
+
+        var jsonContent = JsonSerializer.Serialize(metadata);
+        if (metadata.TryGetProperty("name", out var nameProp)) {
+            existing.Name = nameProp.GetString() ?? existing.Name;
+        }
+        existing.Content = jsonContent;
+        existing.LastModified = DateTime.UtcNow;
+
+        await _repo.UpdateAsync(existing);
+        return Ok(existing);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteWorkflow(Guid projectId, Guid id)
+    {
+        var existing = await _repo.GetByIdAsync(id);
+        if (existing == null || existing.ProjectId != projectId) return NotFound();
+
+        await _repo.DeleteAsync(id);
+        return Ok();
+    }
+
+    [HttpPost("{id}/publish")]
+    public async Task<ActionResult> PublishWorkflow(Guid projectId, Guid id)
+    {
+        var artifact = await _repo.GetByIdAsync(id);
+        if (artifact == null || artifact.ProjectId != projectId) return NotFound();
+
+        // Simulate Elsa 3.0 Publication
+        var metadata = JsonDocument.Parse(artifact.Content).RootElement;
+        var nodes = metadata.GetProperty("nodes").EnumerateArray();
+        var triggerNode = nodes.FirstOrDefault(n => n.GetProperty("type").GetString() == "http");
+
+        if (triggerNode.ValueKind != JsonValueKind.Undefined)
+        {
+            var config = triggerNode.GetProperty("config");
+            var path = config.GetProperty("path").GetString();
+            var method = config.GetProperty("method").GetString();
+
+            Console.WriteLine($"[ENGINE] Registering Elsa HTTP Endpoint: {method} {path} for Workflow {artifact.Name}");
+        }
+
+        artifact.LastModified = DateTime.UtcNow;
+        // In a real implementation: _elsaPublisher.PublishAsync(...)
+        
+        return Ok(new { Message = "Workflow published to engine successfully", Endpoint = "/workflows/..." });
     }
 }

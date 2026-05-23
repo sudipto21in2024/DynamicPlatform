@@ -3,256 +3,298 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api';
+import { ProjectContextService } from '../../services/project-context';
 
 @Component({
     selector: 'app-security-designer',
     standalone: true,
     imports: [CommonModule, FormsModule, RouterLink],
+    styles: [`
+    :host { display: block; }
+    .studio-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow: hidden; }
+
+    /* ── Toolbar ──────────────────────────────── */
+    .toolbar { height: 56px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; background: rgba(15,23,42,0.8); backdrop-filter: blur(16px); z-index: 20; }
+    .toolbar-left { display: flex; align-items: center; gap: 1rem; }
+    .back-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: transparent; color: #64748b; cursor: pointer; transition: all 0.2s; }
+    .back-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-icon-wrap { width: 36px; height: 36px; background: rgba(139,92,246,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .brand-icon { color: #a78bfa; font-size: 1.25rem; }
+    .brand-title { font-size: 0.85rem; font-weight: 800; color: #fff; margin: 0; }
+    .brand-sub { font-size: 9px; color: #475569; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .tabs { display: flex; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 0.25rem; gap: 0.25rem; margin-left: 2rem; }
+    .tab-btn { padding: 0.375rem 1rem; border-radius: 8px; border: none; background: transparent; color: #64748b; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .tab-btn.active { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .toolbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .btn-primary { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.25rem; border-radius: 10px; border: none; background: #2563eb; color: #fff; font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
+    .btn-primary:hover { background: #3b82f6; transform: translateY(-1px); }
+
+    /* ── Content ──────────────────────────────── */
+    .viewport { flex: 1; overflow-y: auto; padding: 2rem; display: flex; justify-content: center; scrollbar-width: thin; }
+    .content-max { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 2rem; }
+
+    .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .section-title { font-size: 1.25rem; font-weight: 800; color: #f1f5f9; margin: 0; }
+    .section-desc { font-size: 0.85rem; color: #64748b; margin-top: 4px; }
+    
+    .card { background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .card-header { padding: 1rem 1.5rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+    .card-title-wrap { display: flex; align-items: center; gap: 0.75rem; }
+    .role-input { background: transparent; border: none; color: #fff; font-size: 1rem; font-weight: 800; outline: none; width: 240px; }
+    .role-input::placeholder { color: #334155; }
+
+    .table-container { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 1rem 1.5rem; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #334155; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    td { padding: 0.75rem 1.5rem; font-size: 0.85rem; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.02); }
+    .entity-name { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #60a5fa; font-weight: 600; }
+
+    .checkbox-wrap { display: flex; justify-content: center; }
+    input[type="checkbox"] { width: 16px; height: 16px; border-radius: 4px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); appearance: none; cursor: pointer; position: relative; transition: all 0.2s; }
+    input[type="checkbox"]:checked { background: #3b82f6; border-color: #3b82f6; }
+    input[type="checkbox"]:checked::after { content: 'check'; font-family: 'Material Icons Outlined'; position: absolute; font-size: 12px; color: #fff; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+    .action-row { padding: 1rem 1.5rem; display: flex; gap: 1rem; }
+    .btn-text { background: transparent; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
+    .btn-text:hover { color: #60a5fa; }
+
+    .btn-icon-red { background: transparent; border: none; color: #334155; cursor: pointer; transition: color 0.2s; }
+    .btn-icon-red:hover { color: #f87171; }
+
+    .menu-item { display: flex; align-items: center; gap: 1.5rem; padding: 1.25rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; margin-bottom: 0.75rem; transition: all 0.2s; }
+    .menu-item:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.03); }
+    .menu-icon-box { width: 44px; height: 44px; border-radius: 12px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: #64748b; }
+    .menu-inputs { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 1rem; }
+    .m-field { display: flex; flex-direction: column; gap: 0.375rem; }
+    .m-label { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #334155; }
+    .m-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.5rem 0.75rem; color: #fff; font-size: 0.8rem; outline: none; }
+    .m-input:focus { border-color: #6366f1; }
+    
+    .role-badge-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .role-badge { padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+    .role-badge.inactive { background: rgba(255,255,255,0.05); color: #475569; }
+    .role-badge.active { background: #3b82f6; color: #fff; }
+    .role-badge.active.purple { background: #8b5cf6; }
+
+    .user-card { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; margin-bottom: 1rem; }
+    .user-header { display: flex; justify-content: space-between; align-items: center; }
+    .user-info { display: flex; align-items: center; gap: 1rem; }
+    .u-avatar { width: 48px; height: 48px; border-radius: 16px; background: #1e293b; display: flex; align-items: center; justify-content: center; color: #475569; }
+    .u-name-input { background: transparent; border: none; color: #fff; font-size: 1.1rem; font-weight: 800; outline: none; padding: 0; }
+    .u-email-input { background: transparent; border: none; color: #475569; font-size: 0.8rem; outline: none; padding: 0; margin-top: 2px; }
+    
+    .user-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  `],
     template: `
-    <div class="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-200">
+    <div class="studio-container">
       <!-- Toolbar -->
-      <div class="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm z-20">
-        <div class="flex items-center space-x-4">
-          <button [routerLink]="['/projects', projectId, 'designer']" class="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all">
-            <span class="material-icons-outlined">arrow_back</span>
+      <header class="toolbar">
+        <div class="toolbar-left">
+          <button [routerLink]="['/projects', projectId, 'designer']" class="back-btn">
+            <span class="material-icons-outlined" style="font-size:1.25rem">arrow_back</span>
           </button>
-          <div class="flex items-center space-x-2">
-            <span class="material-icons-outlined text-purple-400">admin_panel_settings</span>
-            <h2 class="text-sm font-semibold text-white">Security & Access Control</h2>
+          <div class="brand">
+            <div class="brand-icon-wrap">
+              <span class="material-icons-outlined brand-icon">admin_panel_settings</span>
+            </div>
+            <div>
+              <h2 class="brand-title">Security & Access</h2>
+              <div class="brand-sub">Policy Engine v2 // {{ projectId | slice:0:8 }}</div>
+            </div>
           </div>
-          <div class="h-6 w-px bg-white/10"></div>
-          <div class="flex space-x-1 p-1 bg-black/20 rounded-lg">
-            <button (click)="activeTab = 'roles'" [class.bg-white/10]="activeTab === 'roles'" class="px-4 py-1.5 rounded-md text-xs font-medium transition-all hover:bg-white/5">Roles & Permissions</button>
-            <button (click)="activeTab = 'menus'" [class.bg-white/10]="activeTab === 'menus'" class="px-4 py-1.5 rounded-md text-xs font-medium transition-all hover:bg-white/5">Navigation Menu</button>
-            <button (click)="activeTab = 'users'" [class.bg-white/10]="activeTab === 'users'" class="px-4 py-1.5 rounded-md text-xs font-medium transition-all hover:bg-white/5">User Management</button>
+          <div class="tabs">
+            <button (click)="activeTab = 'roles'" [class.active]="activeTab === 'roles'" class="tab-btn">Roles</button>
+            <button (click)="activeTab = 'menus'" [class.active]="activeTab === 'menus'" class="tab-btn">Navigation</button>
+            <button (click)="activeTab = 'users'" [class.active]="activeTab === 'users'" class="tab-btn">Users</button>
           </div>
         </div>
-        <button (click)="save()" [disabled]="isSaving" class="flex items-center space-x-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white px-5 py-2 rounded-lg shadow-lg transition-all active:scale-95">
-          <span class="material-icons-outlined text-lg">{{ isSaving ? 'sync' : 'save' }}</span>
-          <span>{{ isSaving ? 'Saving...' : 'Save Configuration' }}</span>
-        </button>
-      </div>
 
-      <div class="flex-1 overflow-hidden flex">
-        <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto p-8">
+        <div class="toolbar-right">
+          <button (click)="save()" [disabled]="isSaving" class="btn-primary">
+            <span class="material-icons-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+            {{ isSaving ? 'Saving Changes...' : 'Save Configuration' }}
+          </button>
+        </div>
+      </header>
+
+      <main class="viewport">
+        <div class="content-max fade-in">
           
-          <!-- Roles Designer -->
-          <div *ngIf="activeTab === 'roles'" class="max-w-5xl mx-auto space-y-8 animate-fadeIn">
-            <div class="flex items-center justify-between mb-4">
-               <div>
-                 <h3 class="text-xl font-bold">Role Definitions</h3>
-                 <p class="text-slate-400 text-sm">Define user roles and map their permissions to system entities.</p>
-               </div>
-               <button (click)="addRole()" class="flex items-center space-x-2 bg-purple-600/20 text-purple-400 border border-purple-500/20 px-4 py-2 rounded-xl hover:bg-purple-600 hover:text-white transition-all">
-                 <span class="material-icons-outlined">add</span>
-                 <span>Add Role</span>
-               </button>
+          <!-- Roles View -->
+          <div *ngIf="activeTab === 'roles'" style="display:flex; flex-direction:column; gap:2rem;">
+            <div class="section-head">
+              <div>
+                <h3 class="section-title">Role Definitions</h3>
+                <p class="section-desc">Map permissions to entities for each security role.</p>
+              </div>
+              <button (click)="addRole()" class="btn-text">
+                <span class="material-icons-outlined">add_circle</span>
+                New Role
+              </button>
             </div>
 
-            <div class="grid grid-cols-1 gap-6">
-              <div *ngFor="let role of security.roles; let ri = index" class="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-                <div class="p-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                  <div class="flex items-center space-x-3">
-                    <span class="material-icons-outlined text-slate-500">group</span>
-                    <input type="text" [(ngModel)]="role.name" class="bg-transparent border-none text-lg font-bold text-white focus:ring-0 w-64" placeholder="Role Name (e.g., Admin)">
-                  </div>
-                  <button (click)="removeRole(ri)" class="text-slate-500 hover:text-red-400 transition-colors">
-                    <span class="material-icons-outlined">delete_outline</span>
-                  </button>
+            <div class="card" *ngFor="let role of security.roles; let ri = index">
+              <div class="card-header">
+                <div class="card-title-wrap">
+                  <span class="material-icons-outlined" style="color:#64748b">group</span>
+                  <input type="text" [(ngModel)]="role.name" class="role-input" placeholder="ROLE_NAME">
                 </div>
-                
-                <div class="p-6">
-                  <table class="w-full text-sm text-left">
-                    <thead>
-                      <tr class="text-slate-500 border-b border-white/5 uppercase text-[10px] tracking-wider font-bold">
-                        <th class="pb-3 pl-2">Entity Name</th>
-                        <th class="pb-3 text-center">Read</th>
-                        <th class="pb-3 text-center">Create</th>
-                        <th class="pb-3 text-center">Update</th>
-                        <th class="pb-3 text-center">Delete</th>
-                        <th class="pb-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5">
-                      <tr *ngFor="let perm of role.permissions; let pi = index" class="group transition-colors hover:bg-white/5">
-                        <td class="py-4 pl-2 font-mono text-blue-400">{{ perm.entityName }}</td>
-                        <td class="py-4 text-center">
-                          <input type="checkbox" [(ngModel)]="perm.canRead" class="rounded bg-slate-800 border-white/10 text-blue-600">
-                        </td>
-                        <td class="py-4 text-center">
-                          <input type="checkbox" [(ngModel)]="perm.canCreate" class="rounded bg-slate-800 border-white/10 text-blue-600">
-                        </td>
-                        <td class="py-4 text-center">
-                          <input type="checkbox" [(ngModel)]="perm.canUpdate" class="rounded bg-slate-800 border-white/10 text-blue-600">
-                        </td>
-                        <td class="py-4 text-center">
-                          <input type="checkbox" [(ngModel)]="perm.canDelete" class="rounded bg-slate-800 border-white/10 text-blue-600">
-                        </td>
-                        <td class="py-4 text-right">
-                          <button (click)="removePermission(role, pi)" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
-                            <span class="material-icons-outlined text-lg">close</span>
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div class="mt-4 flex justify-start">
-                    <button (click)="addPermission(role)" class="flex items-center space-x-1 text-xs text-blue-400 hover:text-blue-300 transition-colors">
-                      <span class="material-icons-outlined text-sm">add</span>
-                      <span>Manage Permissions for Entities</span>
-                    </button>
-                  </div>
-                </div>
+                <button (click)="removeRole(ri)" class="btn-icon-red">
+                  <span class="material-icons-outlined">delete</span>
+                </button>
+              </div>
+              
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:30%">Entity Name</th>
+                      <th style="text-align:center">Read</th>
+                      <th style="text-align:center">Create</th>
+                      <th style="text-align:center">Update</th>
+                      <th style="text-align:center">Delete</th>
+                      <th style="text-align:right"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let perm of role.permissions; let pi = index">
+                      <td class="entity-name">{{ perm.entityName }}</td>
+                      <td><div class="checkbox-wrap"><input type="checkbox" [(ngModel)]="perm.canRead"></div></td>
+                      <td><div class="checkbox-wrap"><input type="checkbox" [(ngModel)]="perm.canCreate"></div></td>
+                      <td><div class="checkbox-wrap"><input type="checkbox" [(ngModel)]="perm.canUpdate"></div></td>
+                      <td><div class="checkbox-wrap"><input type="checkbox" [(ngModel)]="perm.canDelete"></div></td>
+                      <td style="text-align:right">
+                         <button (click)="removePermission(role, pi)" class="btn-icon-red" style="opacity:0.3">
+                           <span class="material-icons-outlined" style="font-size:1rem">close</span>
+                         </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="action-row">
+                 <button (click)="addPermission(role)" class="btn-text" style="font-size:9px">
+                   <span class="material-icons-outlined" style="font-size:12px">sync</span>
+                   Sync with Entities
+                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Menus Designer -->
-          <div *ngIf="activeTab === 'menus'" class="max-w-5xl mx-auto space-y-8 animate-fadeIn">
-             <div class="flex items-center justify-between">
-                <div>
-                   <h3 class="text-xl font-bold">Navigation Menu</h3>
-                   <p class="text-slate-400 text-sm">Configure the application menu and restrict visibility by roles.</p>
+          <!-- Menu View -->
+          <div *ngIf="activeTab === 'menus'" style="display:flex; flex-direction:column; gap:2rem;">
+            <div class="section-head">
+              <div>
+                <h3 class="section-title">Navigation Menu</h3>
+                <p class="section-desc">Configure the application sidebar and role-based visibility.</p>
+              </div>
+              <button (click)="addMenu()" class="btn-text">
+                <span class="material-icons-outlined">add_circle</span>
+                Add Link
+              </button>
+            </div>
+
+            <div class="menu-stack">
+              <div *ngFor="let menu of security.menus; let mi = index" class="menu-item">
+                <div class="menu-icon-box">
+                  <span class="material-icons-outlined">{{ menu.icon || 'menu' }}</span>
                 </div>
-                <button (click)="addMenu()" class="flex items-center space-x-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
-                  <span class="material-icons-outlined">add</span>
-                  <span>Add Menu Item</span>
+                <div class="menu-inputs">
+                  <div class="m-field">
+                    <label class="m-label">Label</label>
+                    <input type="text" [(ngModel)]="menu.label" class="m-input">
+                  </div>
+                  <div class="m-field">
+                    <label class="m-label">Route</label>
+                    <input type="text" [(ngModel)]="menu.route" class="m-input">
+                  </div>
+                  <div class="m-field">
+                    <label class="m-label">Icon ID</label>
+                    <input type="text" [(ngModel)]="menu.icon" class="m-input">
+                  </div>
+                  <div class="m-field">
+                    <label class="m-label">Visibility</label>
+                    <div class="role-badge-list">
+                       <span *ngFor="let role of security.roles" 
+                             (click)="toggleRole(menu, role.name)"
+                             [class.active]="menu.allowedRoles.includes(role.name)"
+                             [class.inactive]="!menu.allowedRoles.includes(role.name)"
+                             class="role-badge">
+                         {{ role.name }}
+                       </span>
+                    </div>
+                  </div>
+                </div>
+                <button (click)="removeMenu(mi)" class="btn-icon-red">
+                  <span class="material-icons-outlined">delete</span>
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- User View -->
+          <div *ngIf="activeTab === 'users'" style="display:flex; flex-direction:column; gap:2rem;">
+             <div class="section-head">
+               <div>
+                 <h3 class="section-title">User Registry</h3>
+                 <p class="section-desc">Seed user accounts for the production environment.</p>
+               </div>
+               <button (click)="addUser()" class="btn-text">
+                 <span class="material-icons-outlined">person_add</span>
+                 Create User
+               </button>
              </div>
 
-             <div class="space-y-4">
-                <div *ngFor="let menu of security.menus; let mi = index" class="p-4 bg-slate-900/50 border border-white/5 rounded-xl flex items-center space-x-6">
-                   <div class="p-3 bg-white/5 rounded-lg text-slate-400">
-                      <span class="material-icons-outlined">{{ menu.icon || 'menu' }}</span>
+             <div class="user-card" *ngFor="let user of userConfig.users; let ui = index">
+               <div class="user-header">
+                 <div class="user-info">
+                   <div class="u-avatar">
+                     <span class="material-icons-outlined">face</span>
                    </div>
-                   <div class="flex-1 grid grid-cols-4 gap-4">
-                      <div class="space-y-1">
-                        <label class="text-[10px] uppercase font-bold text-slate-500">Label</label>
-                        <input type="text" [(ngModel)]="menu.label" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-0 outline-none" placeholder="e.g., Dashboard">
-                      </div>
-                      <div class="space-y-1">
-                        <label class="text-[10px] uppercase font-bold text-slate-500">Route</label>
-                        <input type="text" [(ngModel)]="menu.route" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-0 outline-none" placeholder="/dashboard">
-                      </div>
-                      <div class="space-y-1">
-                        <label class="text-[10px] uppercase font-bold text-slate-500">Icon</label>
-                        <input type="text" [(ngModel)]="menu.icon" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-0 outline-none" placeholder="material-icon-name">
-                      </div>
-                      <div class="space-y-1">
-                         <label class="text-[10px] uppercase font-bold text-slate-500">Allowed Roles</label>
-                         <div class="flex flex-wrap gap-1">
-                            <span *ngFor="let role of security.roles" 
-                                  (click)="toggleRole(menu, role.name)"
-                                  [class.bg-blue-600]="menu.allowedRoles.includes(role.name)"
-                                  [class.text-white]="menu.allowedRoles.includes(role.name)"
-                                  [class.bg-white/5]="!menu.allowedRoles.includes(role.name)"
-                                  [class.text-slate-500]="!menu.allowedRoles.includes(role.name)"
-                                  class="px-2 py-1 rounded-md text-[10px] cursor-pointer hover:bg-white/10 transition-all">
-                              {{ role.name }}
-                            </span>
-                         </div>
-                      </div>
+                   <div>
+                     <input type="text" [(ngModel)]="user.username" class="u-name-input" placeholder="username">
+                     <input type="text" [(ngModel)]="user.email" class="u-email-input" placeholder="email@domain.com">
                    </div>
-                   <button (click)="removeMenu(mi)" class="text-slate-600 hover:text-red-400 p-2">
-                     <span class="material-icons-outlined">delete_outline</span>
-                   </button>
-                </div>
+                 </div>
+                 <button (click)="removeUser(ui)" class="btn-icon-red">
+                   <span class="material-icons-outlined">delete</span>
+                 </button>
+               </div>
+
+               <div class="user-grid">
+                  <div class="m-field">
+                    <label class="m-label">Master Password</label>
+                    <input type="password" [(ngModel)]="user.password" class="m-input" placeholder="••••••••">
+                  </div>
+                  <div class="m-field">
+                    <label class="m-label">Attached Roles</label>
+                    <div class="role-badge-list">
+                       <span *ngFor="let role of security.roles" 
+                             (click)="toggleUserRole(user, role.name)"
+                             [class.active]="user.assignedRoles.includes(role.name)"
+                             [class.purple]="true"
+                             [class.inactive]="!user.assignedRoles.includes(role.name)"
+                             class="role-badge">
+                         {{ role.name }}
+                       </span>
+                    </div>
+                  </div>
+               </div>
              </div>
           </div>
-          <!-- User Management Designer -->
-          <div *ngIf="activeTab === 'users'" class="max-w-5xl mx-auto space-y-8 animate-fadeIn">
-             <div class="flex items-center justify-between">
-                <div>
-                   <h3 class="text-xl font-bold">App Users</h3>
-                   <p class="text-slate-400 text-sm">Manage user identities and their assigned security roles for the generated application.</p>
-                </div>
-                <button (click)="addUser()" class="flex items-center space-x-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
-                  <span class="material-icons-outlined">person_add</span>
-                  <span>Add User</span>
-                </button>
-             </div>
 
-             <div class="space-y-4">
-                <div *ngFor="let user of userConfig.users; let ui = index" class="p-6 bg-slate-900/50 border border-white/5 rounded-2xl flex flex-col space-y-4">
-                   <div class="flex items-center justify-between">
-                      <div class="flex items-center space-x-4">
-                         <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
-                            <span class="material-icons-outlined">person</span>
-                         </div>
-                         <div>
-                            <input type="text" [(ngModel)]="user.username" class="bg-transparent border-none text-lg font-bold text-white focus:ring-0 w-64 p-0" placeholder="Username">
-                            <input type="text" [(ngModel)]="user.email" class="bg-transparent border-none text-xs text-slate-500 focus:ring-0 w-64 p-0 block" placeholder="user@example.com">
-                         </div>
-                      </div>
-                      <button (click)="removeUser(ui)" class="text-slate-600 hover:text-red-400 p-2">
-                        <span class="material-icons-outlined">delete_outline</span>
-                      </button>
-                   </div>
-                   
-                   <div class="grid grid-cols-2 gap-6">
-                      <div class="space-y-2">
-                         <label class="text-[10px] uppercase font-bold text-slate-500">Security Password (Plain)</label>
-                         <div class="relative">
-                            <input type="password" [(ngModel)]="user.password" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-0 outline-none pr-10" placeholder="••••••••">
-                            <span class="material-icons-outlined absolute right-3 top-2 text-slate-600 text-sm">lock</span>
-                         </div>
-                      </div>
-                      <div class="space-y-2">
-                         <label class="text-[10px] uppercase font-bold text-slate-500">Assigned Roles</label>
-                         <div class="flex flex-wrap gap-1">
-                            <span *ngFor="let role of security.roles" 
-                                  (click)="toggleUserRole(user, role.name)"
-                                  [class.bg-purple-600]="user.assignedRoles.includes(role.name)"
-                                  [class.text-white]="user.assignedRoles.includes(role.name)"
-                                  [class.bg-white/5]="!user.assignedRoles.includes(role.name)"
-                                  [class.text-slate-500]="!user.assignedRoles.includes(role.name)"
-                                  class="px-2 py-1 rounded-md text-[10px] cursor-pointer hover:bg-white/10 transition-all">
-                              {{ role.name }}
-                            </span>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-          </div>
-        </main>
-
-        <!-- Context Sidebar -->
-        <aside class="w-72 bg-slate-900 border-l border-white/10 p-6 space-y-8 hidden xl:block">
-           <div class="space-y-4">
-             <h4 class="text-xs uppercase font-bold text-slate-500 tracking-wider">Quick Actions</h4>
-             <div class="space-y-2">
-                <button class="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 text-sm flex items-center space-x-3 transition-all">
-                   <span class="material-icons-outlined text-green-400 text-lg">verified_user</span>
-                   <span>Audit Log Settings</span>
-                </button>
-                <button class="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 text-sm flex items-center space-x-3 transition-all">
-                   <span class="material-icons-outlined text-orange-400 text-lg">key</span>
-                   <span>AD / LDAP Integration</span>
-                </button>
-             </div>
-           </div>
-           
-           <div class="p-6 bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-2xl">
-              <span class="material-icons-outlined text-blue-400 mb-2">info</span>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Roles and Permissions are automatically enforced at the **API Level** using the Generated XML configuration during the build process.
-              </p>
-           </div>
-        </aside>
-      </div>
+        </div>
+      </main>
     </div>
   `,
-    styles: [`
-    .animate-fadeIn {
-      animation: fadeIn 0.4s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  `]
 })
 export class SecurityDesigner implements OnInit {
     projectId: string | null = null;
@@ -264,9 +306,13 @@ export class SecurityDesigner implements OnInit {
 
     constructor(
         private readonly route: ActivatedRoute,
-        private readonly api: ApiService
+        private readonly api: ApiService,
+        private readonly projectContext: ProjectContextService
     ) {
         this.projectId = this.route.snapshot.paramMap.get('projectId');
+        if (this.projectId) {
+            this.projectContext.setProjectId(this.projectId);
+        }
     }
 
     ngOnInit() {
@@ -280,7 +326,6 @@ export class SecurityDesigner implements OnInit {
         this.api.getSecurityConfig(this.projectId!).subscribe({
             next: (config) => {
                 this.security = config || { roles: [], menus: [] };
-                // Ensure defaults
                 if (!this.security.roles) this.security.roles = [];
                 if (!this.security.menus) this.security.menus = [];
             }
@@ -321,7 +366,6 @@ export class SecurityDesigner implements OnInit {
     }
 
     addPermission(role: any) {
-        // Permission sync usually handled on addRole or on refresh, but we allows adding missing ones
         this.availableEntities.forEach(e => {
             if (!role.permissions.some((p: any) => p.entityName === e)) {
                 role.permissions.push({
@@ -395,11 +439,11 @@ export class SecurityDesigner implements OnInit {
             forkJoin([obs1, obs2]).subscribe({
                 next: () => {
                     this.isSaving = false;
-                    alert('Security and User configurations saved!');
+                    alert('Security configuration synchronized.');
                 },
                 error: (err) => {
                     this.isSaving = false;
-                    alert('Save failed: ' + err.message);
+                    alert('Synchronize failed: ' + err.message);
                 }
             });
         });

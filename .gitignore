@@ -44,3 +44,6 @@ DemoBuild*/
 mcp_servers.json
 GEMINI.md
 .gemini/
+
+# Graphify Outputs
+graphify-out/
