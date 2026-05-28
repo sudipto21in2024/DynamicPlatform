@@ -97,4 +97,103 @@ public class EntitiesController : ControllerBase
         await _repo.DeleteAsync(entityId);
         return NoContent();
     }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportEntities(Guid projectId)
+    {
+        var artifacts = await _repo.GetByProjectIdAsync(projectId);
+        var entities = new List<EntityMetadata>();
+        foreach (var a in artifacts)
+        {
+            if (a.Type == ArtifactType.Entity)
+            {
+                try
+                {
+                    var meta = JsonSerializer.Deserialize<EntityMetadata>(a.Content);
+                    if (meta != null)
+                    {
+                        entities.Add(meta);
+                    }
+                }
+                catch { /* Ignore corrupt entries */ }
+            }
+        }
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(entities, new JsonSerializerOptions { WriteIndented = true });
+        return File(bytes, "application/json", $"entities-export-{projectId}.json");
+    }
+
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportEntities(Guid projectId, [FromBody] EntityImportRequest request)
+    {
+        if (request == null || request.Entities == null || request.Entities.Count == 0)
+            return BadRequest("No entities provided for import.");
+
+        var existingArtifacts = await _repo.GetByProjectIdAsync(projectId);
+        var existingEntitiesByName = new Dictionary<string, Artifact>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in existingArtifacts)
+        {
+            if (a.Type == ArtifactType.Entity)
+            {
+                existingEntitiesByName[a.Name] = a;
+            }
+        }
+
+        // Detect conflicts (existing entities that are not explicitly approved for overwrite)
+        var conflicts = new List<string>();
+        foreach (var meta in request.Entities)
+        {
+            if (string.IsNullOrWhiteSpace(meta.Name)) continue;
+            if (existingEntitiesByName.ContainsKey(meta.Name))
+            {
+                var isConfirmed = request.ConfirmedOverwrites.Contains(meta.Name, StringComparer.OrdinalIgnoreCase);
+                if (!isConfirmed)
+                {
+                    conflicts.Add(meta.Name);
+                }
+            }
+        }
+
+        // If conflicts are found, return confirmation payload
+        if (conflicts.Count > 0)
+        {
+            return Ok(new { RequiresConfirmation = true, Conflicts = conflicts });
+        }
+
+        var importedCount = 0;
+        var updatedCount = 0;
+
+        foreach (var meta in request.Entities)
+        {
+            if (string.IsNullOrWhiteSpace(meta.Name)) continue;
+
+            var jsonContent = JsonSerializer.Serialize(meta);
+
+            if (existingEntitiesByName.TryGetValue(meta.Name, out var existingArtifact))
+            {
+                existingArtifact.Content = jsonContent;
+                await _repo.UpdateAsync(existingArtifact);
+                updatedCount++;
+            }
+            else
+            {
+                var artifact = new Artifact
+                {
+                    ProjectId = projectId,
+                    Name = meta.Name,
+                    Type = ArtifactType.Entity,
+                    Content = jsonContent
+                };
+                await _repo.AddAsync(artifact);
+                importedCount++;
+            }
+        }
+
+        return Ok(new { Message = "Import completed successfully.", RequiresConfirmation = false, ImportedCount = importedCount, UpdatedCount = updatedCount });
+    }
+}
+
+public class EntityImportRequest
+{
+    public List<EntityMetadata> Entities { get; set; } = new();
+    public List<string> ConfirmedOverwrites { get; set; } = new();
 }

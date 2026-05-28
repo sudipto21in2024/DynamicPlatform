@@ -241,6 +241,18 @@ import { ProjectContextService } from '../../services/project-context';
              Export Code
           </button>
 
+          <button (click)="exportSchemaJson()" class="btn-export" style="border-color: rgba(59,130,246,0.3);">
+             <span class="material-icons-outlined" style="color: #60a5fa;">download</span>
+             Export JSON
+          </button>
+
+          <button (click)="triggerSchemaJsonImport()" class="btn-export" style="border-color: rgba(16,185,129,0.3);">
+             <span class="material-icons-outlined" style="color: #34d399;">upload</span>
+             Import JSON
+          </button>
+          
+          <input type="file" #schemaFileInput (change)="importSchemaJson($event)" accept=".json" style="display: none;">
+
           <button (click)="publish()" [disabled]="isPublishing" class="btn-deploy">
              <span class="material-icons-outlined" [class.spin]="isPublishing">{{ isPublishing ? 'sync' : 'bolt' }}</span>
              {{ isPublishing ? 'Deploying...' : 'Build & Deploy' }}
@@ -465,6 +477,7 @@ import { ProjectContextService } from '../../services/project-context';
 })
 export class EntityDesigner implements AfterViewInit, OnDestroy {
   @ViewChild('canvasContainer') canvasContainer!: ElementRef;
+  @ViewChild('schemaFileInput') schemaFileInput!: ElementRef;
 
   projectId: string | null = null;
   stage!: Konva.Stage;
@@ -1088,6 +1101,67 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
         alert('Propagation failed: ' + err.message);
       }
     });
+  }
+
+  exportSchemaJson() {
+    if (!this.projectId) return;
+    this.api.exportEntities(this.projectId).subscribe({
+      next: (blob) => {
+        const url = globalThis.URL.createObjectURL(blob);
+        const a = globalThis.document.createElement('a');
+        a.href = url;
+        a.download = `entities-export-${this.projectId}.json`;
+        a.click();
+        globalThis.URL.revokeObjectURL(url);
+      },
+      error: (err) => alert('Failed to export entities schema: ' + err.message)
+    });
+  }
+
+  triggerSchemaJsonImport() {
+    if (this.schemaFileInput) {
+      this.schemaFileInput.nativeElement.click();
+    }
+  }
+
+  importSchemaJson(event: any) {
+    const file = event.target.files?.[0];
+    if (!file || !this.projectId) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        const entitiesArray = Array.isArray(json) ? json : [json];
+        
+        const executeImport = (confirmedOverwrites: string[]) => {
+          this.api.importEntities(this.projectId!, { entities: entitiesArray, confirmedOverwrites }).subscribe({
+            next: (res) => {
+              if (res.requiresConfirmation) {
+                const conflictsList = res.conflicts.join(', ');
+                const confirmOverwrite = confirm(
+                  `The following entities already exist:\n\n👉  ${conflictsList}\n\nDo you want to proceed and overwrite these entities?`
+                );
+                if (confirmOverwrite) {
+                  executeImport(res.conflicts);
+                }
+              } else {
+                alert(`Import completed successfully! New: ${res.importedCount}, Updated: ${res.updatedCount}`);
+                this.loadEntities();
+              }
+            },
+            error: (err) => alert('Import sequence failed: ' + (err.error?.message || err.message))
+          });
+        };
+
+        executeImport([]);
+
+      } catch (err) {
+        alert('Failed to parse JSON file: ' + err);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
   }
 
   ngOnDestroy() {

@@ -49,6 +49,12 @@ export class ApiService {
   createEntity(projectId: string, metadata: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/entities`, metadata);
   }
+  exportEntities(projectId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/projects/${projectId}/entities/export`, { responseType: 'blob' });
+  }
+  importEntities(projectId: string, request: { entities: any[], confirmedOverwrites: string[] }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/projects/${projectId}/entities/import`, request);
+  }
 
   // ── Build & Deploy ─────────────────────────────────────────────────────
   buildProject(projectId: string, options: any = {}): Observable<Blob> {
