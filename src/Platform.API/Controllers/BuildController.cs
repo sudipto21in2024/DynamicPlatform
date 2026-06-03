@@ -185,6 +185,9 @@ public class BuildController : ControllerBase
                 {
                     var formFrontendCode = _formGen.GenerateFrontend(form);
                     AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), formFrontendCode);
+
+                    var premiumFormFrontendCode = _formGen.GeneratePremiumFrontend(form);
+                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-premium-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), premiumFormFrontendCode);
                 }
             }
 

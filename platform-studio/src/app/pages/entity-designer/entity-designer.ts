@@ -338,6 +338,10 @@ import { ProjectContextService } from '../../services/project-context';
                   <span class="material-icons-outlined" style="font-size: 1rem;">auto_awesome</span>
                   AI Assist Entity
                 </button>
+                <button (click)="generateCrudForms()" class="btn-add blue" style="width: 100%; padding: 0.625rem 1rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border-radius: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); border: none; margin-top: 0.5rem;">
+                  <span class="material-icons-outlined" style="font-size: 1rem;">dynamic_form</span>
+                  Generate Forms
+                </button>
               </div>
 
               <!-- Fields -->
@@ -1058,6 +1062,124 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
       field.rules.splice(index, 1);
       this.redrawCanvas();
     }
+  }
+
+  generateCrudForms() {
+    if (!this.projectId || !this.selectedNode) {
+      alert('Select an entity to generate forms.');
+      return;
+    }
+
+    const entity = this.selectedNode;
+    const entityName = entity.name;
+
+    // Build fields list
+    // Build fields list helper
+    const buildFormFields = (mode: string) => {
+      return (entity.fields || []).map((field: any, index: number) => {
+        const label = field.name
+          .replace(/([A-Z])/g, ' $1')
+          .trim();
+
+        let placeholder = `Enter ${label}`;
+        if (field.type === 'datetime') {
+          placeholder = 'Pick a date';
+        } else if (field.type === 'bool') {
+          placeholder = '';
+        }
+
+        let validationPattern = '';
+        if (field.rules && field.rules.length > 0) {
+          const regexRule = field.rules.find((r: any) => r.type === 'Regex');
+          if (regexRule) {
+            validationPattern = regexRule.value;
+          }
+        }
+
+        const isDescription = field.name.toLowerCase().includes('desc') || field.name.toLowerCase().includes('description');
+
+        return {
+          Name: field.name,
+          Type: field.type,
+          Label: label,
+          Placeholder: placeholder,
+          Tooltip: '',
+          DefaultValue: '',
+          IsRequired: !!field.isRequired,
+          ValidationPattern: validationPattern,
+          EnumReference: '',
+          ElementId: `${entityName.toLowerCase()}_${mode.toLowerCase()}_${field.name.toLowerCase()}`,
+          CssClass: '',
+          Style: '',
+          GridSpan: isDescription ? 2 : 1,
+          Order: index
+        };
+      });
+    };
+
+    const formFieldsCreate = buildFormFields('create');
+    const formFieldsEdit = buildFormFields('edit');
+
+    // Build sections based on count: if <= 8, 1 section; if > 8, split.
+    const fieldNames = (entity.fields || []).map((f: any) => f.name);
+    const sections: any[] = [];
+    if (fieldNames.length <= 8) {
+      sections.push({
+        Title: 'General Information',
+        FieldNames: fieldNames,
+        Order: 0
+      });
+    } else {
+      sections.push({
+        Title: 'Primary Details',
+        FieldNames: fieldNames.slice(0, 8),
+        Order: 0
+      });
+      sections.push({
+        Title: 'Additional Details',
+        FieldNames: fieldNames.slice(8),
+        Order: 1
+      });
+    }
+
+    // Build Create Form Dto
+    const createFormMetadata = {
+      Name: `${entityName} Create Form`,
+      EntityTarget: entityName,
+      Layout: 'Vertical',
+      Sections: sections,
+      Fields: formFieldsCreate,
+      Context: {
+        Mode: 0, // Create (numeric enum representation)
+        ParentEntityId: null,
+        AdditionalData: {}
+      }
+    };
+
+    // Build Edit Form Dto
+    const editFormMetadata = {
+      Name: `${entityName} Edit Form`,
+      EntityTarget: entityName,
+      Layout: 'Vertical',
+      Sections: JSON.parse(JSON.stringify(sections)),
+      Fields: formFieldsEdit,
+      Context: {
+        Mode: 1, // Edit (numeric enum representation)
+        ParentEntityId: null,
+        AdditionalData: {}
+      }
+    };
+
+    // Call api.createForm for both
+    this.api.createForm(this.projectId, createFormMetadata).subscribe({
+      next: () => {
+        this.api.createForm(this.projectId!, editFormMetadata).subscribe({
+          next: () => alert(`CRUD Forms for ${entityName} generated successfully!`),
+          error: (err) => alert(`Failed to generate Edit Form: ${err.message}`)
+        });
+      },
+      error: (err) => alert(`Failed to generate Create Form: ${err.message}`)
+    });
   }
 
   save() {

@@ -113,6 +113,11 @@ interface WorkflowMetadata {
         </div>
 
         <div class="toolbar-right">
+          <button (click)="triggerImport()" class="btn-ghost">
+            <i class="material-icons-outlined">file_upload</i>
+            Import Elsa JSON
+          </button>
+          <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none" accept=".json">
           <button (click)="saveWorkflow()" class="btn-ghost">
             <i class="material-icons-outlined">save</i>
             Draft Sync
@@ -156,7 +161,24 @@ interface WorkflowMetadata {
 
         <!-- Canvas -->
         <main #canvasContainer class="canvas-area">
-          <div id="workflow-holder"></div>
+          <div id="workflow-holder" [style.display]="isNativeElsaWorkflow ? 'none' : 'block'"></div>
+          
+          <div *ngIf="selectedWorkflow && isNativeElsaWorkflow" class="empty-state" style="opacity: 1; max-width: 450px; margin: auto; padding: 2rem; border-radius: 16px; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); top: 50%; transform: translateY(-50%); position: relative;">
+             <span class="material-icons-outlined" style="color: #10b981; font-size: 4rem; margin-bottom: 1rem;">verified</span>
+             <h3 style="color:#fff; margin-bottom: 0.5rem; font-weight: 700; font-size: 1.15rem;">Native Elsa Workflow Loaded</h3>
+             <p style="text-transform:none; font-size: 0.85rem; color:#94a3b8; font-weight:normal; line-height: 1.6; letter-spacing: normal; margin-bottom: 0;">
+               This workflow is imported from the official <strong>Elsa Workflow Studio</strong>. 
+               The engine is ready to run and execute all custom connectors and steps.
+             </p>
+             <div style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.15); border-radius: 12px; padding: 1.25rem; margin-top: 1.5rem; text-align: left;">
+               <div style="display:flex; align-items:center; gap:0.5rem; color:#34d399; font-size: 0.75rem; font-weight:800; text-transform:uppercase; margin-bottom: 0.5rem;">
+                 <span class="material-icons-outlined" style="font-size:1.1rem">settings_backup_restore</span> Ready to Deploy
+               </div>
+               <span style="font-size:0.75rem; color:#64748b; line-height: 1.4; display:block;">
+                 Visual editing is disabled to preserve the Elsa Studio properties. Click <strong>"Publish to Engine"</strong> to register this workflow.
+               </span>
+             </div>
+          </div>
           
           <div *ngIf="!selectedWorkflow" class="empty-state">
              <span class="material-icons-outlined">account_tree</span>
@@ -271,11 +293,13 @@ interface WorkflowMetadata {
 })
 export class WorkflowDesigner implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('canvasContainer') canvasContainer!: ElementRef;
+  @ViewChild('fileInput') fileInput!: ElementRef;
 
   projectId: string | null = null;
   workflowId: string | null = null;
-  selectedWorkflow: WorkflowMetadata | null = null;
+  selectedWorkflow: any = null;
   selectedNode: WorkflowNode | null = null;
+  isNativeElsaWorkflow: boolean = false;
 
   stage!: Konva.Stage;
   layer!: Konva.Layer;
@@ -329,6 +353,7 @@ export class WorkflowDesigner implements OnInit, AfterViewInit, OnDestroy {
         const artifact = artifacts.find(a => a.id === this.workflowId);
         if (artifact) {
           const content = JSON.parse(artifact.content);
+          this.isNativeElsaWorkflow = content && !content.nodes && (content.root || content.activities || content.type === 'Workflow');
           this.selectedWorkflow = { ...content, id: artifact.id };
           this.renderWorkflow();
         }
@@ -341,12 +366,12 @@ export class WorkflowDesigner implements OnInit, AfterViewInit, OnDestroy {
     this.layer.destroyChildren();
     this.nodeGroups.clear();
 
-    if (!this.selectedWorkflow) {
+    if (!this.selectedWorkflow || this.isNativeElsaWorkflow) {
       this.layer.batchDraw();
       return;
     }
 
-    this.selectedWorkflow.nodes.forEach(node => {
+    this.selectedWorkflow.nodes.forEach((node: WorkflowNode) => {
       this.drawNode(node);
     });
 
@@ -376,7 +401,7 @@ export class WorkflowDesigner implements OnInit, AfterViewInit, OnDestroy {
     if (!this.selectedNode || !this.selectedWorkflow) return;
     
     // Remove from metadata
-    this.selectedWorkflow.nodes = this.selectedWorkflow.nodes.filter(n => n.id !== this.selectedNode?.id);
+    this.selectedWorkflow.nodes = this.selectedWorkflow.nodes.filter((n: WorkflowNode) => n.id !== this.selectedNode?.id);
     
     // Remove from canvas
     const group = this.nodeGroups.get(this.selectedNode.id);
@@ -456,7 +481,7 @@ export class WorkflowDesigner implements OnInit, AfterViewInit, OnDestroy {
         r.stroke('#10b981');
         r.strokeWidth(3);
       } else {
-        const n = this.selectedWorkflow?.nodes.find(v => v.id === id);
+        const n = this.selectedWorkflow?.nodes.find((v: WorkflowNode) => v.id === id);
         r.stroke(n?.color || '#94a3b8');
         r.strokeWidth(1);
       }
@@ -557,6 +582,42 @@ export class WorkflowDesigner implements OnInit, AfterViewInit, OnDestroy {
       case 'attachment': return { provider: 'local', extensions: '.pdf,.docx', maxSize: 10 };
       default: return {};
     }
+  }
+
+  triggerImport() {
+    if (this.fileInput) {
+      this.fileInput.nativeElement.click();
+    }
+  }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        if (this.selectedWorkflow) {
+          const name = importedData.name || this.selectedWorkflow.name;
+          this.isNativeElsaWorkflow = importedData && !importedData.nodes && (importedData.root || importedData.activities || importedData.type === 'Workflow');
+          
+          this.selectedWorkflow = {
+            ...importedData,
+            id: this.selectedWorkflow.id,
+            name: name
+          };
+
+          this.api.updateWorkflow(this.projectId!, this.selectedWorkflow.id!, this.selectedWorkflow).subscribe(() => {
+            this.renderWorkflow();
+            alert('Elsa Workflow Studio JSON imported and synchronized successfully!');
+          });
+        }
+      } catch (err: any) {
+        alert('Failed to parse Elsa JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   }
 
   onResize() {

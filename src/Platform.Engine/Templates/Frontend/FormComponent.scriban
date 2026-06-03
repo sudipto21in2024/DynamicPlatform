@@ -19,13 +19,15 @@ import { HttpClient } from '@angular/common/http';
           {{~ # Find the field object from the master list ~}}
           {{~ for f in fields ~}}
           {{~ if f.name == field_name ~}}
-          <div class="form-group">
-            <label for="{{ f.name }}" class="block text-sm font-medium text-gray-700">{{ f.label }}</label>
+          <div class="form-group {{ if f.grid_span == 2 }}col-span-2{{ end }}">
+            <label for="{{ f.element_id || f.name }}" class="block text-sm font-medium text-gray-700">{{ f.label }}</label>
             <input type="{{ f.type == 'int' ? 'number' : (f.type == 'datetime' ? 'date' : 'text') }}"
-                   id="{{ f.name }}"
+                   id="{{ f.element_id || f.name }}"
+                   name="{{ f.element_id || f.name }}"
                    formControlName="{{ f.name }}"
                    placeholder="{{ f.placeholder }}"
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                   style="{{ f.style }}"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border {{ f.css_class }}"
                    [class.border-red-500]="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" />
             
             <div *ngIf="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" class="text-red-500 text-xs mt-1">

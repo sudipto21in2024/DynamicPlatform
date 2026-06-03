@@ -30,6 +30,10 @@ namespace Platform.Engine.Models
         public bool IsRequired { get; set; }
         public string ValidationPattern { get; set; } // Regex
         public string EnumReference { get; set; } // If backed by an Enum
+        public string ElementId { get; set; }
+        public string CssClass { get; set; }
+        public string Style { get; set; }
+        public int GridSpan { get; set; } = 1;
         public int Order { get; set; }
     }
 

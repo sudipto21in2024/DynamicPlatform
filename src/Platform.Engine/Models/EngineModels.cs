@@ -170,10 +170,19 @@ public class PaginationConfig
     public bool AllowClientOverride { get; set; } = true;
 }
 
+public enum FormMode
+{
+    Create,
+    Edit,
+    View,
+    Clone,
+    InlineEdit
+}
+
 public class FormContext
 {
     // Indicates whether the form is used for creating a new entity or editing an existing one
-    public string Mode { get; set; } = "Create"; // or "Edit"
+    public FormMode Mode { get; set; } = FormMode.Create;
 
     // Optional parent entity identifier (e.g., a PatientId when creating an Appointment form)
     public string? ParentEntityId { get; set; }

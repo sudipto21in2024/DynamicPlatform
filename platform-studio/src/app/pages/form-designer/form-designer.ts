@@ -116,6 +116,29 @@ import { FormsModule } from '@angular/forms';
                    <input [value]="selectedField.type" disabled class="w-full bg-gray-100 border rounded px-2 py-1 text-sm text-gray-600" />
                </div>
 
+               <div class="mb-4">
+                  <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Element ID (Strong name)</label>
+                  <input [(ngModel)]="selectedField.elementId" class="w-full border rounded px-2 py-1 text-sm font-mono" />
+               </div>
+
+               <div class="mb-4">
+                  <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Grid Columns Span</label>
+                  <select [(ngModel)]="selectedField.gridSpan" class="w-full border rounded px-2 py-1 text-sm">
+                     <option [value]="1">1 Column</option>
+                     <option [value]="2">2 Columns</option>
+                  </select>
+               </div>
+
+               <div class="mb-4">
+                  <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Custom CSS Class</label>
+                  <input [(ngModel)]="selectedField.cssClass" class="w-full border rounded px-2 py-1 text-sm" placeholder="e.g. shadow-sm text-lg" />
+               </div>
+
+               <div class="mb-4">
+                  <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Custom Inline Style</label>
+                  <input [(ngModel)]="selectedField.style" class="w-full border rounded px-2 py-1 text-sm" placeholder="e.g. color: blue;" />
+               </div>
+
             </div>
             <ng-template #noSelection>
                <div class="text-center text-gray-400 mt-10">
@@ -227,6 +250,10 @@ export class FormDesignerComponent implements OnInit {
             label: entityField.name, // Default label
             placeholder: '',
             isRequired: false,
+            elementId: `${(this.metadata.name || 'form').replace(/\s+/g, '_').toLowerCase()}_${entityField.name.toLowerCase()}`,
+            cssClass: '',
+            style: '',
+            gridSpan: entityField.name.toLowerCase().includes('desc') || entityField.name.toLowerCase().includes('description') ? 2 : 1,
             order: section.fieldNames.length
         };
 

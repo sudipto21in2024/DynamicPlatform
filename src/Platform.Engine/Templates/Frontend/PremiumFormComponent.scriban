@@ -1,0 +1,228 @@
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectionStrategy, signal, DestroyRef, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, Observable, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
+
+@Component({
+  selector: 'app-{{ name | string.downcase }}-premium-form',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <!-- Premium Glassmorphic Container -->
+    <div class="max-w-4xl mx-auto bg-slate-950/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden font-sans">
+      
+      <!-- Top Accent Line -->
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600"></div>
+
+      <!-- Detail/View Mode Header -->
+      <div class="flex justify-between items-center mb-8">
+        <div>
+           <h2 class="text-2xl font-black text-white tracking-tight">{{ name }} <span class="text-indigo-400">Builder</span></h2>
+           <p class="text-slate-400 text-sm">Active Domain target: <code class="bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-mono">{{ entity_target }}</code></p>
+        </div>
+        <div class="flex items-center gap-3">
+           <span class="px-3 py-1 text-xs font-black uppercase tracking-wider rounded-full border" 
+                 [ngClass]="{
+                   'bg-emerald-950/30 text-emerald-400 border-emerald-800/30': mode() === 'Create',
+                   'bg-blue-950/30 text-blue-400 border-blue-800/30': mode() === 'Edit',
+                   'bg-slate-900 text-slate-400 border-slate-800': mode() === 'View'
+                 }">
+             {{ mode() }} Mode
+           </span>
+           <button *ngIf="mode() === 'View'" (click)="setMode('Edit')" class="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition">
+             Edit Record
+           </button>
+           <button *ngIf="mode() === 'Edit'" (click)="setMode('View')" class="px-4 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 transition">
+             View Mode
+           </button>
+        </div>
+      </div>
+
+      <!-- State Banners -->
+      <div *ngIf="error()" class="mb-6 p-4 bg-red-950/30 border border-red-800/50 rounded-2xl flex items-start gap-3">
+         <span class="text-red-400 mt-0.5">⚠️</span>
+         <div>
+            <h4 class="font-bold text-red-200 text-sm">Fault State Detected</h4>
+            <p class="text-xs text-red-400/90">{{ error() }}</p>
+         </div>
+      </div>
+
+      <!-- Render Label-Value pairs if in View / Detail Mode -->
+      <div *ngIf="mode() === 'View'" class="space-y-8 animate-fadeIn">
+        {{~ for section in sections ~}}
+        <div class="bg-slate-900/30 border border-slate-900 rounded-2xl p-6">
+           <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4">── {{ section.title }} ──</h3>
+           <div class="grid grid-cols-2 gap-x-8 gap-y-6">
+             {{~ for field_name in section.field_names ~}}
+             {{~ for f in fields ~}}
+             {{~ if f.name == field_name ~}}
+             <div class="flex flex-col gap-1 border-b border-slate-900 pb-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{{ f.label }}</span>
+                <div class="flex items-center justify-between">
+                   <span class="text-sm font-semibold text-slate-100">
+                      {{~ if f.type == 'bool' ~}}
+                      {{ '{{' }} form.get('{{ f.name }}')?.value ? 'Yes' : 'No' {{ '}}' }}
+                      {{~ else ~}}
+                      {{ '{{' }} form.get('{{ f.name }}')?.value || '—' {{ '}}' }}
+                      {{~ end ~}}
+                   </span>
+                </div>
+             </div>
+             {{~ end ~}}
+             {{~ end ~}}
+             {{~ end ~}}
+           </div>
+        </div>
+        {{~ end ~}}
+      </div>
+
+      <!-- Active Interactive Form for Create/Edit Modes -->
+      <form *ngIf="mode() !== 'View'" [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-8 animate-fadeIn">
+        {{~ for section in sections ~}}
+        <div class="bg-slate-900/10 border border-slate-900/50 rounded-2xl p-6 relative hover:border-slate-800/80 transition">
+          <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-6">── {{ section.title }} ──</h3>
+          
+          <div class="grid grid-cols-2 gap-x-6 gap-y-6">
+            {{~ for field_name in section.field_names ~}}
+            {{~ for f in fields ~}}
+            {{~ if f.name == field_name ~}}
+            <!-- Responsive ColSpan: Spans full row for long string content or as configured by grid_span -->
+            <div class="{{ if f.grid_span == 2 }}col-span-2{{ else if f.grid_span == 1 }}col-span-1{{ else }}{{ f.type == 'string' && f.name | string.downcase | string.contains 'desc' ? 'col-span-2' : 'col-span-1' }}{{ end }} flex flex-col gap-2">
+              <label for="{{ f.element_id || f.name }}" class="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                {{ f.label }}
+                {{~ if f.is_required ~}}<span class="text-red-500">*</span>{{~ end ~}}
+              </label>
+
+              <!-- Conditional Component Renders based on Type -->
+              {{~ if f.type == 'bool' ~}}
+              <div class="flex items-center gap-3 mt-2">
+                 <input type="checkbox" id="{{ f.element_id || f.name }}" name="{{ f.element_id || f.name }}" formControlName="{{ f.name }}" 
+                        style="{{ f.style }}"
+                        class="h-5 w-5 rounded-md bg-slate-900 border-slate-800 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-950 transition cursor-pointer {{ f.css_class }}" />
+                 <span class="text-sm text-slate-300 font-medium">Enable</span>
+              </div>
+              
+              {{~ else if f.type == 'datetime' ~}}
+              <input type="date" id="{{ f.element_id || f.name }}" name="{{ f.element_id || f.name }}" formControlName="{{ f.name }}"
+                     style="{{ f.style }}"
+                     class="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition placeholder-slate-600 {{ f.css_class }}" />
+              
+              {{~ else if f.type == 'int' || f.type == 'decimal' ~}}
+              <input type="number" id="{{ f.element_id || f.name }}" name="{{ f.element_id || f.name }}" formControlName="{{ f.name }}"
+                     placeholder="{{ f.placeholder }}"
+                     style="{{ f.style }}"
+                     class="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition placeholder-slate-600 {{ f.css_class }}" />
+
+              {{~ else if f.type == 'string' && f.name | string.downcase | string.contains 'desc' ~}}
+              <textarea id="{{ f.element_id || f.name }}" name="{{ f.element_id || f.name }}" formControlName="{{ f.name }}" rows="4"
+                        placeholder="{{ f.placeholder }}"
+                        style="{{ f.style }}"
+                        class="w-full bg-slate-900/50 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition placeholder-slate-600 resize-none {{ f.css_class }}"></textarea>
+
+              {{~ else ~}}
+              <input type="text" id="{{ f.element_id || f.name }}" name="{{ f.element_id || f.name }}" formControlName="{{ f.name }}"
+                     placeholder="{{ f.placeholder }}"
+                     style="{{ f.style }}"
+                     class="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition placeholder-slate-600 {{ f.css_class }}" />
+              {{~ end ~}}
+
+              <!-- Inline field error warnings -->
+              <div *ngIf="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" class="text-red-400 text-xs font-semibold mt-1 flex items-center gap-1 animate-pulse">
+                <span>⚠</span> {{ f.label }} is required or formatted incorrectly.
+              </div>
+            </div>
+            {{~ end ~}}
+            {{~ end ~}}
+            {{~ end ~}}
+          </div>
+        </div>
+        {{~ end ~}}
+
+        <!-- Actions Panel -->
+        <div class="flex justify-between items-center pt-6 border-t border-slate-900">
+           <button type="button" (click)="onCancel()" class="px-6 py-3 border border-slate-800 rounded-xl text-sm font-black uppercase tracking-wider text-slate-400 hover:bg-slate-900 hover:text-white transition">
+             Cancel
+           </button>
+           <button type="submit" [disabled]="form.invalid || isSaving()" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-black uppercase tracking-wider hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 transition shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+             <span *ngIf="isSaving()" class="material-icons-outlined animate-spin text-sm">sync</span>
+             {{ isSaving() ? 'Saving Stack...' : 'Save Configuration' }}
+           </button>
+        </div>
+      </form>
+
+    </div>
+  `
+})
+export class {{ name }}PremiumFormComponent implements OnInit, OnDestroy {
+  @Input() initialData: any = null;
+  @Input() initialMode: 'Create' | 'Edit' | 'View' = 'Create';
+  
+  @Output() save = new EventEmitter<any>();
+  @Output() cancel = new EventEmitter<void>();
+
+  // Signals for state binding
+  mode = signal<'Create' | 'Edit' | 'View'>('Create');
+  isSaving = signal(false);
+  error = signal<string | null>(null);
+
+  form: FormGroup;
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor(private readonly fb: FormBuilder, private readonly http: HttpClient) {
+    this.form = this.fb.group({
+      {{~ for field in fields ~}}
+      {{ field.name }}: [
+        '{{ field.default_value }}', 
+        [
+          {{~ if field.is_required ~}}Validators.required,{{~ end ~}}
+          {{~ if field.validation_pattern ~}}Validators.pattern(/{{ field.validation_pattern }}/),{{~ end ~}}
+        ]
+      ],
+      {{~ end ~}}
+    });
+  }
+
+  ngOnInit() {
+    this.mode.set(this.initialMode);
+    if (this.initialData) {
+      this.form.patchValue(this.initialData);
+    }
+  }
+
+  setMode(newMode: 'Create' | 'Edit' | 'View') {
+    this.mode.set(newMode);
+  }
+
+  onSubmit() {
+    if (this.form.valid) {
+      this.isSaving.set(true);
+      this.error.set(null);
+      
+      // Simulate API lag and emit save output
+      setTimeout(() => {
+        this.isSaving.set(false);
+        this.save.emit(this.form.value);
+        this.mode.set('View');
+      }, 800);
+    } else {
+      this.form.markAllAsTouched();
+      this.error.set('Validation check failed. Please audit highlight fields.');
+    }
+  }
+
+  onCancel() {
+    if (this.form.dirty) {
+      const confirmDiscard = confirm('Uncommitted configuration rules exist. Discard changes?');
+      if (!confirmDiscard) return;
+    }
+    this.cancel.emit();
+  }
+
+  ngOnDestroy() {
+    // Unsubscribe handles automatically via Angular DestroyRef injection
+  }
+}

@@ -9,11 +9,13 @@ public class FormGenerator
 {
     private readonly Template _backendTemplate;
     private readonly Template _frontendTemplate;
+    private readonly Template _premiumFrontendTemplate;
 
     public FormGenerator()
     {
         _backendTemplate = LoadTemplate("Backend", "Form.scriban");
         _frontendTemplate = LoadTemplate("Frontend", "FormComponent.scriban");
+        _premiumFrontendTemplate = LoadTemplate("Frontend", "PremiumFormComponent.scriban");
     }
 
     private Template LoadTemplate(string type, string filename)
@@ -49,6 +51,17 @@ public class FormGenerator
     public string GenerateFrontend(FormMetadata metadata)
     {
         return _frontendTemplate.Render(new { 
+            name = metadata.Name,
+            fields = metadata.Fields,
+            sections = metadata.Sections,
+            layout = metadata.Layout.ToString(),
+            entity_target = metadata.EntityTarget
+        }, member => member.Name);
+    }
+
+    public string GeneratePremiumFrontend(FormMetadata metadata)
+    {
+        return _premiumFrontendTemplate.Render(new { 
             name = metadata.Name,
             fields = metadata.Fields,
             sections = metadata.Sections,
