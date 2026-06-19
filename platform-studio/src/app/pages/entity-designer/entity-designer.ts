@@ -46,6 +46,9 @@ import { ProjectContextService } from '../../services/project-context';
     .opt-label.blue:hover { color: #60a5fa; }
     .opt-label.purple:hover { color: #c084fc; }
     .opt-checkbox { height: 0.75rem; width: 0.75rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; }
+    .lang-select { background: #1e293b; font-size: 10px; font-weight: 700; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); padding: 0.25rem 0.5rem; color: #cbd5e1; outline: none; cursor: pointer; transition: all 0.2s; }
+    .lang-select:hover { border-color: rgba(59,130,246,0.5); color: #fff; }
+    .lang-select option { background: #0f172a; color: #cbd5e1; }
 
     .btn-export { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; color: #e2e8f0; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
     .btn-export:hover { background: #334155; }
@@ -234,6 +237,16 @@ import { ProjectContextService } from '../../services/project-context';
               <input type="checkbox" [(ngModel)]="buildOptions.enableAIEnabledDocs" class="opt-checkbox">
               AI Docs
             </label>
+          </div>
+
+          <div class="options-stack">
+            <label class="opt-label slate" style="color: #64748b;">Target Language</label>
+            <select [ngModel]="buildOptions.language" (ngModelChange)="buildOptions.language = +$event" class="lang-select">
+              <option [value]="0">.NET Core (C#)</option>
+              <option [value]="1">Spring Boot (Java)</option>
+              <option [value]="2">FastAPI (Python)</option>
+              <option [value]="3">NestJS (NodeJS)</option>
+            </select>
           </div>
 
           <button (click)="buildAsZip()" class="btn-export">
@@ -498,7 +511,8 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
   buildOptions = {
     includeUI: true,
     enableAIEnabledDocs: true,
-    standaloneAPI: false
+    standaloneAPI: false,
+    language: 0
   };
 
   // UI Modes & Zoom Variables
@@ -1201,8 +1215,10 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
         const url = globalThis.URL.createObjectURL(blob);
         const a = globalThis.document.createElement('a');
         a.href = url;
+        const langNames = ['.NET', 'Java', 'Python', 'NodeJS'];
+        const langStr = langNames[this.buildOptions.language] || '.NET';
         const suffix = this.buildOptions.includeUI ? 'Full_Stack' : 'API_Only';
-        a.download = `${suffix}_Export.zip`;
+        a.download = `${suffix}_${langStr}_Export.zip`;
         a.click();
         globalThis.URL.revokeObjectURL(url);
       },
