@@ -1,46 +1,44 @@
 using System;
-using System.IO;
 using Platform.Engine.Models;
+using Platform.Engine.Services;
 using Scriban;
 
 namespace Platform.Engine.Generators;
 
 public class DashboardGenerator
 {
-    private readonly Template _template;
-
     public DashboardGenerator()
     {
-        var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "Frontend", "DashboardComponent.scriban");
-        
-        if (!File.Exists(templatePath))
-        {
-             templatePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Platform.Engine", "Templates", "Frontend", "DashboardComponent.scriban");
-        }
-
-        if (File.Exists(templatePath))
-        {
-            var content = File.ReadAllText(templatePath);
-            _template = Template.Parse(content);
-        }
-        else 
-        {
-            throw new FileNotFoundException($"Template not found at {templatePath}");
-        }
     }
 
-    public string Generate(PageMetadata metadata)
+    public GeneratedComponent Generate(PageMetadata metadata, string styleLibrary)
     {
-        if (_template.HasErrors)
+        var tsContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "DashboardComponent.scriban");
+        var cssContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "DashboardComponent.css.scriban");
+
+        var tsTemplate = Template.Parse(tsContent);
+        var cssTemplate = Template.Parse(cssContent);
+
+        if (tsTemplate.HasErrors)
         {
-            throw new InvalidOperationException("Template has errors: " + string.Join(", ", _template.Messages));
+            throw new InvalidOperationException("Dashboard TypeScript template has errors: " + string.Join(", ", tsTemplate.Messages));
+        }
+        if (cssTemplate.HasErrors)
+        {
+            throw new InvalidOperationException("Dashboard CSS template has errors: " + string.Join(", ", cssTemplate.Messages));
         }
 
-        return _template.Render(new { 
+        var data = new { 
             Name = metadata.Name,
             NameLowered = metadata.Name.ToLower(),
             Route = metadata.Route,
             Widgets = metadata.Widgets
-        }, member => member.Name);
+        };
+
+        return new GeneratedComponent
+        {
+            TypeScript = tsTemplate.Render(data, member => member.Name),
+            Css = cssTemplate.Render(data, member => member.Name)
+        };
     }
 }

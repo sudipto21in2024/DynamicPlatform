@@ -26,7 +26,8 @@ import { HttpClient } from '@angular/common/http';
         </tbody>
       </table>
     </div>
-  `
+  `,
+  styleUrl: './{{ Name | string.downcase }}.component.css'
 })
 export class {{ Name }}Component implements OnInit {
   items: any[] = [];

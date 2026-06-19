@@ -83,6 +83,7 @@ public class BuildController : ControllerBase
         var forms = new List<FormMetadata>();
         var project = await _repo.GetProjectByIdAsync(projectId);
         var baseNamespace = project?.Name.Replace(" ", "") ?? "GeneratedApp";
+        var styleLibrary = project?.StyleLibrary ?? "Default";
 
         // 1. Load Metadata
         foreach (var artifact in artifacts)
@@ -183,11 +184,13 @@ public class BuildController : ControllerBase
 
                 if (options.IncludeUI)
                 {
-                    var formFrontendCode = _formGen.GenerateFrontend(form);
-                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), formFrontendCode);
+                    var formFrontend = _formGen.GenerateFrontend(form, styleLibrary);
+                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{form.Name.ToLower()}-form.component.ts", formFrontend.TypeScript);
+                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{form.Name.ToLower()}-form.component.css", formFrontend.Css);
 
-                    var premiumFormFrontendCode = _formGen.GeneratePremiumFrontend(form);
-                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{{name | string.downcase}}-premium-form.component.ts".Replace("{{name | string.downcase}}", form.Name.ToLower()), premiumFormFrontendCode);
+                    var premiumFormFrontend = _formGen.GeneratePremiumFrontend(form, styleLibrary);
+                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{form.Name.ToLower()}-premium-form.component.ts", premiumFormFrontend.TypeScript);
+                    AddFileToZip(archive, $"Frontend/src/app/forms/{form.Name.ToLower()}-form/{form.Name.ToLower()}-premium-form.component.css", premiumFormFrontend.Css);
                 }
             }
 
@@ -196,13 +199,15 @@ public class BuildController : ControllerBase
             {
                 foreach (var page in pages)
                 {
-                    var pageCode = _frontendLayoutGen.GenerateDashboard(page);
-                    AddFileToZip(archive, $"Frontend/src/app/pages/dashboards/{page.Name.ToLower()}.component.ts", pageCode);
+                    var pageComp = _frontendLayoutGen.GenerateDashboard(page, styleLibrary);
+                    AddFileToZip(archive, $"Frontend/src/app/pages/dashboards/{page.Name.ToLower()}.component.ts", pageComp.TypeScript);
+                    AddFileToZip(archive, $"Frontend/src/app/pages/dashboards/{page.Name.ToLower()}.component.css", pageComp.Css);
                 }
 
                 // 7b. Generate Layout/Navigation (Reflecting Security Features)
-                var navCode = _frontendLayoutGen.GenerateNavigation(baseNamespace, security ?? new SecurityMetadata());
-                AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.ts", navCode);
+                var navComp = _frontendLayoutGen.GenerateNavigation(baseNamespace, security ?? new SecurityMetadata(), styleLibrary);
+                AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.ts", navComp.TypeScript);
+                AddFileToZip(archive, "Frontend/src/app/components/navigation/navigation.component.css", navComp.Css);
 
                 // 7c. Generate UI Logging Service
                 var logServiceCode = _frontendLayoutGen.GenerateLoggingService("DEBUG", true);

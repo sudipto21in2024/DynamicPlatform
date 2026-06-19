@@ -25,6 +25,8 @@ public class Project
     // Isolation Properties
     public string? TargetDbName { get; set; }
     public string? IsolatedConnectionString { get; set; }
+    
+    public string StyleLibrary { get; set; } = "Default";
 
     // Navigation
     public virtual ICollection<Artifact>? Artifacts { get; set; }

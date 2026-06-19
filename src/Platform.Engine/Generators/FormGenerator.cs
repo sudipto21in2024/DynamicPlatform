@@ -1,44 +1,28 @@
 using System;
-using System.IO;
 using Platform.Engine.Models;
+using Platform.Engine.Services;
 using Scriban;
 
 namespace Platform.Engine.Generators;
 
 public class FormGenerator
 {
-    private readonly Template _backendTemplate;
-    private readonly Template _frontendTemplate;
-    private readonly Template _premiumFrontendTemplate;
-
     public FormGenerator()
     {
-        _backendTemplate = LoadTemplate("Backend", "Form.scriban");
-        _frontendTemplate = LoadTemplate("Frontend", "FormComponent.scriban");
-        _premiumFrontendTemplate = LoadTemplate("Frontend", "PremiumFormComponent.scriban");
-    }
-
-    private Template LoadTemplate(string type, string filename)
-    {
-        var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", type, filename);
-        
-        if (!File.Exists(templatePath))
-        {
-             templatePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Platform.Engine", "Templates", type, filename);
-        }
-
-        if (File.Exists(templatePath))
-        {
-            var content = File.ReadAllText(templatePath);
-            return Template.Parse(content);
-        }
-        
-        throw new FileNotFoundException($"Template not found at {templatePath}");
     }
 
     public string GenerateBackend(FormMetadata metadata, string rootNamespace)
     {
-        return _backendTemplate.Render(new { 
+        // Backend templates don't depend on frontend style libraries
+        var templateContent = TemplateResolver.LoadTemplate("Backend", "Default", "Form.scriban");
+        var template = Template.Parse(templateContent);
+
+        if (template.HasErrors)
+        {
+            throw new InvalidOperationException("Form Backend template has errors: " + string.Join(", ", template.Messages));
+        }
+
+        return template.Render(new { 
             name = metadata.Name,
             root_namespace = rootNamespace,
             fields = metadata.Fields,
@@ -48,25 +32,67 @@ public class FormGenerator
         }, member => member.Name);
     }
 
-    public string GenerateFrontend(FormMetadata metadata)
+    public GeneratedComponent GenerateFrontend(FormMetadata metadata, string styleLibrary)
     {
-        return _frontendTemplate.Render(new { 
+        var tsContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "FormComponent.scriban");
+        var cssContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "FormComponent.css.scriban");
+
+        var tsTemplate = Template.Parse(tsContent);
+        var cssTemplate = Template.Parse(cssContent);
+
+        if (tsTemplate.HasErrors)
+        {
+            throw new InvalidOperationException("Form Frontend TypeScript template has errors: " + string.Join(", ", tsTemplate.Messages));
+        }
+        if (cssTemplate.HasErrors)
+        {
+            throw new InvalidOperationException("Form Frontend CSS template has errors: " + string.Join(", ", cssTemplate.Messages));
+        }
+
+        var data = new { 
             name = metadata.Name,
             fields = metadata.Fields,
             sections = metadata.Sections,
             layout = metadata.Layout.ToString(),
             entity_target = metadata.EntityTarget
-        }, member => member.Name);
+        };
+
+        return new GeneratedComponent
+        {
+            TypeScript = tsTemplate.Render(data, member => member.Name),
+            Css = cssTemplate.Render(data, member => member.Name)
+        };
     }
 
-    public string GeneratePremiumFrontend(FormMetadata metadata)
+    public GeneratedComponent GeneratePremiumFrontend(FormMetadata metadata, string styleLibrary)
     {
-        return _premiumFrontendTemplate.Render(new { 
+        var tsContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "PremiumFormComponent.scriban");
+        var cssContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "PremiumFormComponent.css.scriban");
+
+        var tsTemplate = Template.Parse(tsContent);
+        var cssTemplate = Template.Parse(cssContent);
+
+        if (tsTemplate.HasErrors)
+        {
+            throw new InvalidOperationException("Premium Form Frontend TypeScript template has errors: " + string.Join(", ", tsTemplate.Messages));
+        }
+        if (cssTemplate.HasErrors)
+        {
+            throw new InvalidOperationException("Premium Form Frontend CSS template has errors: " + string.Join(", ", cssTemplate.Messages));
+        }
+
+        var data = new { 
             name = metadata.Name,
             fields = metadata.Fields,
             sections = metadata.Sections,
             layout = metadata.Layout.ToString(),
             entity_target = metadata.EntityTarget
-        }, member => member.Name);
+        };
+
+        return new GeneratedComponent
+        {
+            TypeScript = tsTemplate.Render(data, member => member.Name),
+            Css = cssTemplate.Render(data, member => member.Name)
+        };
     }
 }

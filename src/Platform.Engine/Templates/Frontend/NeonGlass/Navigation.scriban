@@ -1,0 +1,102 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-nav',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar-wrapper" [class.collapsed]="isSidebarCollapsed">
+      <!-- Glow effect background -->
+      <div class="sidebar-glow-left"></div>
+      
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <a routerLink="/" class="logo-box">
+          <div class="logo-icon">
+            <span class="material-icons-outlined">insights</span>
+          </div>
+          <span class="logo-text">{{ProjectName}}</span>
+        </a>
+        <button class="toggle-sidebar-btn" (click)="toggleSidebar()">
+          <span class="material-icons-outlined">menu_open</span>
+        </button>
+      </div>
+
+      <!-- Navigation Menus -->
+      <div class="sidebar-menu-container">
+        <div class="menu-group">
+          <p class="group-title">NODE MENU</p>
+          <ul class="menu-list">
+            {{~ for menu in Menus ~}}
+            <li class="menu-item" *ngIf="canAccess(['{{menu.AllowedRoles | array.join "','"}}'])">
+              <a [routerLink]="['{{menu.Route}}']" routerLinkActive="active" class="menu-link">
+                <span class="material-icons-outlined link-icon">{{menu.Icon || 'grid_view'}}</span>
+                <span class="link-text">{{menu.Label}}</span>
+              </a>
+            </li>
+            {{~ end ~}}
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Top Header Bar -->
+    <header class="header-bar" [class.full-width]="isSidebarCollapsed">
+      <div class="search-box">
+        <span class="material-icons-outlined search-icon">search</span>
+        <input type="text" placeholder="Quantum search..." class="search-input" />
+      </div>
+
+      <div class="header-actions">
+        <!-- System Status -->
+        <div class="status-indicator">
+          <span class="status-pulse"></span>
+          <span class="status-label">SYS_ONLINE</span>
+        </div>
+
+        <button class="action-btn" (click)="toggleDarkMode()">
+          <span class="material-icons-outlined">ac_unit</span>
+        </button>
+
+        <button class="action-btn relative">
+          <span class="material-icons-outlined">notifications_active</span>
+          <span class="badge"></span>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="user-profile">
+          <div class="avatar">
+            <span class="material-icons-outlined">person</span>
+          </div>
+        </div>
+      </div>
+    </header>
+  `,
+  styleUrl: './navigation.component.css'
+})
+export class NavigationComponent implements OnInit {
+  userRoles: string[] = ['Administrator']; 
+  isSidebarCollapsed = false;
+  isDarkMode = true;
+
+  constructor() {}
+
+  ngOnInit() {}
+
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  }
+
+  toggleDarkMode() {
+    this.isDarkMode = !this.isDarkMode;
+    document.body.classList.toggle('neon-light-mode');
+  }
+
+  canAccess(allowedRoles: string[]): boolean {
+    if (!allowedRoles || allowedRoles.length === 0 || allowedRoles[0] === '') return true;
+    return allowedRoles.some(role => this.userRoles.includes(role));
+  }
+}

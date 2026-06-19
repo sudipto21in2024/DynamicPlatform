@@ -50,7 +50,8 @@ import { HttpClient } from '@angular/common/http';
         </button>
       </div>
     </form>
-  `
+  `,
+  styleUrl: './{{ name | string.downcase }}-form.component.css'
 })
 export class {{ name }}FormComponent implements OnInit {
   @Input() initialData: any = null;

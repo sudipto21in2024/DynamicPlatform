@@ -1,0 +1,268 @@
+/* TailAdmin Navigation Stylesheet */
+:host {
+  display: block;
+}
+
+.sidebar-wrapper {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background-color: #1C2434;
+  color: #AEB7C0;
+  display: flex;
+  flex-direction: column;
+  z-index: 99;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1px solid #2E3A47;
+}
+
+.sidebar-wrapper.collapsed {
+  width: 80px;
+}
+
+.sidebar-header {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logo-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: #fff;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #3C50E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  transition: opacity 0.2s;
+}
+
+.sidebar-wrapper.collapsed .logo-text {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+}
+
+.toggle-sidebar-btn {
+  background: transparent;
+  border: none;
+  color: #8A99AD;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.toggle-sidebar-btn:hover {
+  color: #fff;
+}
+
+.sidebar-menu-container {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+}
+
+.menu-group {
+  margin-bottom: 2rem;
+}
+
+.group-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #8A99AD;
+  margin-bottom: 1rem;
+  padding-left: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+.sidebar-wrapper.collapsed .group-title {
+  opacity: 0;
+  height: 0;
+  margin: 0;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #AEB7C0;
+  text-decoration: none;
+  font-size: 0.925rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.25s;
+}
+
+.menu-link:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.menu-link.active {
+  background-color: #3C50E0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar-wrapper.collapsed .link-text {
+  display: none;
+}
+
+.sidebar-wrapper.collapsed .menu-link {
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+/* Header Bar Styling */
+.header-bar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 280px;
+  height: 80px;
+  background-color: #24303F;
+  border-bottom: 1px solid #2E3A47;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 98;
+  transition: left 0.3s;
+}
+
+.header-bar.full-width {
+  left: 80px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  width: 320px;
+}
+
+.search-icon {
+  color: #8A99AD;
+  font-size: 1.25rem;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.search-input::placeholder {
+  color: #8A99AD;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  color: #8A99AD;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: #3C50E0;
+  border-radius: 50%;
+  border: 2px solid #24303F;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: #2E3A47;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #fff;
+  margin: 0;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: #8A99AD;
+  margin: 0;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #3C50E0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

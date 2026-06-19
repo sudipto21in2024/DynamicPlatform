@@ -154,6 +154,15 @@ import { ProjectContextService } from '../../services/project-context';
             <textarea [(ngModel)]="newProject.description" class="input-field" rows="3" placeholder="Define the primary objective of this stack..."></textarea>
           </div>
 
+          <div class="input-group">
+            <label class="input-label">Style Library</label>
+            <select [(ngModel)]="newProject.styleLibrary" class="input-field" style="background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 0.875rem 1.125rem; color: #fff; font-size: 1rem; outline: none;">
+              <option value="Default" style="background-color:#0f172a;">Default (Classic Corporate)</option>
+              <option value="TailAdmin" style="background-color:#0f172a;">TailAdmin (Modern Slate)</option>
+              <option value="NeonGlass" style="background-color:#0f172a;">NeonGlass (Cyberpunk Neon)</option>
+            </select>
+          </div>
+
           <div class="modal-foot">
             <button class="btn-cancel" (click)="showModal = false">Discard</button>
             <button class="btn-create" (click)="createProject()" [disabled]="creating || !newProject.name.trim()">
@@ -171,7 +180,7 @@ export class ProjectsList implements OnInit {
   loading = true;
   showModal = false;
   creating = false;
-  newProject = { name: '', description: '' };
+  newProject = { name: '', description: '', styleLibrary: 'Default' };
 
   constructor(
     private readonly api: ApiService,
@@ -195,7 +204,7 @@ export class ProjectsList implements OnInit {
   }
 
   openNewProjectModal() {
-    this.newProject = { name: '', description: '' };
+    this.newProject = { name: '', description: '', styleLibrary: 'Default' };
     this.showModal = true;
   }
 
@@ -205,6 +214,7 @@ export class ProjectsList implements OnInit {
     this.api.createProject({
       name: this.newProject.name.trim(),
       description: this.newProject.description.trim(),
+      styleLibrary: this.newProject.styleLibrary,
       tenantId: '00000000-0000-0000-0000-000000000000'
     }).subscribe({
       next: (project: any) => {

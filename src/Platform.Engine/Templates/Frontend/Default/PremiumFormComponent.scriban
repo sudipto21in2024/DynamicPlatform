@@ -39,8 +39,8 @@ import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/
            <button *ngIf="mode() === 'Edit'" (click)="setMode('View')" class="px-4 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700 transition">
              View Mode
            </button>
-        </div>
-      </div>
+         </div>
+       </div>
 
       <!-- State Banners -->
       <div *ngIf="error()" class="mb-6 p-4 bg-red-950/30 border border-red-800/50 rounded-2xl flex items-start gap-3">
@@ -61,16 +61,16 @@ import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/
              {{~ for f in fields ~}}
              {{~ if f.name == field_name ~}}
              <div class="flex flex-col gap-1 border-b border-slate-900 pb-2">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{{ f.label }}</span>
-                <div class="flex items-center justify-between">
-                   <span class="text-sm font-semibold text-slate-100">
-                      {{~ if f.type == 'bool' ~}}
-                      {{ '{{' }} form.get('{{ f.name }}')?.value ? 'Yes' : 'No' {{ '}}' }}
-                      {{~ else ~}}
-                      {{ '{{' }} form.get('{{ f.name }}')?.value || '—' {{ '}}' }}
-                      {{~ end ~}}
-                   </span>
-                </div>
+                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{{ f.label }}</span>
+                 <div class="flex items-center justify-between">
+                    <span class="text-sm font-semibold text-slate-100">
+                       {{~ if f.type == 'bool' ~}}
+                       {{ '{{' }} form.get('{{ f.name }}')?.value ? 'Yes' : 'No' {{ '}}' }}
+                       {{~ else ~}}
+                       {{ '{{' }} form.get('{{ f.name }}')?.value || '—' {{ '}}' }}
+                       {{~ end ~}}
+                    </span>
+                 </div>
              </div>
              {{~ end ~}}
              {{~ end ~}}
@@ -155,7 +155,8 @@ import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/
       </form>
 
     </div>
-  `
+  `,
+  styleUrl: './{{ name | string.downcase }}-premium-form.component.css'
 })
 export class {{ name }}PremiumFormComponent implements OnInit, OnDestroy {
   @Input() initialData: any = null;
@@ -223,6 +224,5 @@ export class {{ name }}PremiumFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Unsubscribe handles automatically via Angular DestroyRef injection
   }
 }

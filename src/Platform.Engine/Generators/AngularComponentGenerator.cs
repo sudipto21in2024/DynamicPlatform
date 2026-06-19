@@ -1,46 +1,44 @@
 using System;
-using System.IO;
 using Platform.Engine.Models;
+using Platform.Engine.Services;
 using Scriban;
 
 namespace Platform.Engine.Generators;
 
 public class AngularComponentGenerator
 {
-    private readonly Template _template;
-
     public AngularComponentGenerator()
     {
-        var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "Frontend", "AngularComponent.scriban");
-        
-        if (!File.Exists(templatePath))
-        {
-             templatePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Platform.Engine", "Templates", "Frontend", "AngularComponent.scriban");
-        }
-
-        if (File.Exists(templatePath))
-        {
-            var content = File.ReadAllText(templatePath);
-            _template = Template.Parse(content);
-        }
-        else 
-        {
-            throw new FileNotFoundException($"Template not found at {templatePath}");
-        }
     }
 
-    public string Generate(EntityMetadata metadata)
+    public GeneratedComponent Generate(EntityMetadata metadata, string styleLibrary)
     {
-        if (_template.HasErrors)
+        var tsContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "AngularComponent.scriban");
+        var cssContent = TemplateResolver.LoadTemplate("Frontend", styleLibrary, "AngularComponent.css.scriban");
+
+        var tsTemplate = Template.Parse(tsContent);
+        var cssTemplate = Template.Parse(cssContent);
+
+        if (tsTemplate.HasErrors)
         {
-            throw new InvalidOperationException("Template has errors: " + string.Join(", ", _template.Messages));
+            throw new InvalidOperationException("List component TypeScript template has errors: " + string.Join(", ", tsTemplate.Messages));
+        }
+        if (cssTemplate.HasErrors)
+        {
+            throw new InvalidOperationException("List component CSS template has errors: " + string.Join(", ", cssTemplate.Messages));
         }
 
-        return _template.Render(new { 
+        var data = new { 
             Name = metadata.Name,
             Namespace = metadata.Namespace,
             Fields = metadata.Fields,
             Relations = metadata.Relations
-        }, member => member.Name);
+        };
+
+        return new GeneratedComponent
+        {
+            TypeScript = tsTemplate.Render(data, member => member.Name),
+            Css = cssTemplate.Render(data, member => member.Name)
+        };
     }
 }

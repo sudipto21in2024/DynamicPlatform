@@ -1,0 +1,101 @@
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-{{ name | string.downcase }}-form',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <div class="form-container-box">
+      <div class="form-header-box">
+        <h2 class="form-title">{{ name }} Definition Form</h2>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body-box">
+        {{~ for section in sections ~}}
+        <div class="form-section">
+          <h3 class="section-title">{{ section.title }}</h3>
+          
+          <div class="fields-grid {{ layout == 'Horizontal' ? 'grid-cols-2' : 'grid-cols-1' }}">
+            {{~ for field_name in section.field_names ~}}
+            {{~ for f in fields ~}}
+            {{~ if f.name == field_name ~}}
+            <div class="form-group-item {{ if f.grid_span == 2 }}col-span-2{{ end }}">
+              <label for="{{ f.element_id || f.name }}" class="field-label">
+                {{ f.label }} {{~ if f.is_required ~}}<span class="required-star">*</span>{{~ end ~}}
+              </label>
+              
+              <input type="{{ f.type == 'int' ? 'number' : (f.type == 'datetime' ? 'date' : 'text') }}"
+                     id="{{ f.element_id || f.name }}"
+                     name="{{ f.element_id || f.name }}"
+                     formControlName="{{ f.name }}"
+                     placeholder="{{ f.placeholder }}"
+                     style="{{ f.style }}"
+                     class="field-input {{ f.css_class }}"
+                     [class.field-error]="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" />
+              
+              <div *ngIf="form.get('{{ f.name }}')?.invalid && form.get('{{ f.name }}')?.touched" class="error-msg-box">
+                {{ f.label }} is required or invalid.
+              </div>
+            </div>
+            {{~ end ~}}
+            {{~ end ~}}
+            {{~ end ~}}
+          </div>
+        </div>
+        {{~ end ~}}
+
+        <div class="form-footer-actions">
+          <button type="button" (click)="onCancel()" class="btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" [disabled]="form.invalid" class="btn-primary">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  `,
+  styleUrl: './{{ name | string.downcase }}-form.component.css'
+})
+export class {{ name }}FormComponent implements OnInit {
+  @Input() initialData: any = null;
+  @Output() save = new EventEmitter<any>();
+  @Output() cancel = new EventEmitter<void>();
+
+  form: FormGroup;
+
+  constructor(private fb: FormBuilder, private http: HttpClient) {
+    this.form = this.fb.group({
+      {{~ for field in fields ~}}
+      {{ field.name }}: [
+        '{{ field.default_value }}', 
+        [
+          {{~ if field.is_required ~}}Validators.required,{{~ end ~}}
+          {{~ if field.validation_pattern ~}}Validators.pattern(/{{ field.validation_pattern }}/),{{~ end ~}}
+        ]
+      ],
+      {{~ end ~}}
+    });
+  }
+
+  ngOnInit() {
+    if (this.initialData) {
+      this.form.patchValue(this.initialData);
+    }
+  }
+
+  onSubmit() {
+    if (this.form.valid) {
+      this.save.emit(this.form.value);
+    } else {
+      this.form.markAllAsTouched();
+    }
+  }
+
+  onCancel() {
+    this.cancel.emit();
+  }
+}

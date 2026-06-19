@@ -1,0 +1,138 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-dashboard-{{ name_lowered }}',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="dashboard-wrapper">
+      <!-- Main Content Container -->
+      <main class="main-content">
+        <!-- Page Title Header -->
+        <div class="page-header">
+          <div class="header-left">
+            <h1 class="page-title">{{ name }}</h1>
+            <p class="page-subtitle">Generated Platform Stack // {{ route }}</p>
+          </div>
+          <div class="header-right">
+            <button class="btn-refresh" (click)="refreshData()">
+              <span class="material-icons-outlined">sync</span> Refresh Data
+            </button>
+          </div>
+        </div>
+
+        <!-- Dashboard Grid Layout -->
+        <div class="dashboard-grid">
+          {% for widget in widgets %}
+          <!-- Widget Card: {{ widget.config.title }} -->
+          <div class="widget-card col-start-{{ widget.layout.desktop.col_start + 1 }} col-span-{{ widget.layout.desktop.col_span }}">
+            <div class="widget-header">
+              <div class="widget-title-box">
+                <div class="widget-icon">
+                  <span class="material-icons-outlined">{{ widget.config.icon || 'star_outline' }}</span>
+                </div>
+                <h3 class="widget-title">{{ widget.config.title }}</h3>
+              </div>
+            </div>
+            
+            <div class="widget-body">
+              {% if widget.type == "Hero" %}
+              <div class="hero-widget">
+                  <h2 class="hero-title">\{\{ '{{ widget.config.title }}' \}\}</h2>
+                  <p class="hero-desc">\{\{ '{{ widget.config.sub_title }}' \}\}</p>
+                  <button class="hero-btn">Explore Suite</button>
+              </div>
+              
+              {% elsif widget.type == "RichText" %}
+              <div class="rich-text-widget">
+                 <p>This is a generated rich text section. You can customize this content in the Page Architect metadata or via the Content Management System (CMS) API.</p>
+                 <p>Our clinic provides the highest level of care with state-of-the-art facilities and a dedicated team of specialists.</p>
+              </div>
+              
+              {% elsif widget.type == "ContactForm" %}
+              <form class="contact-form-widget">
+                 <div class="form-item">
+                   <label class="form-label">Full Name</label>
+                   <input type="text" class="form-input">
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">Message</label>
+                   <textarea class="form-textarea" rows="3"></textarea>
+                 </div>
+                 <button type="button" class="form-btn">Send Message</button>
+              </form>
+              
+              {% elsif widget.type == "Map" %}
+              <div class="map-widget">
+                 <div class="map-placeholder"></div>
+                 <span class="material-icons-outlined map-marker">place</span>
+                 <div class="map-label">Downtown Medical Center</div>
+              </div>
+              
+              {% elsif widget.type == "StatCard" %}
+              <div class="stat-widget">
+                <div class="stat-value">
+                  \{\{ data['{{ widget.id }}'] || '0' \}\}
+                </div>
+                <p class="stat-subtitle">{{ widget.config.sub_title || 'Active Registry' }}</p>
+              </div>
+              
+              {% elsif widget.type == "DataGrid" %}
+              <div class="grid-widget">
+                 <table class="grid-table">
+                    <thead>
+                       <tr>
+                          <th>Details</th>
+                          <th>Status</th>
+                       </tr>
+                    </thead>
+                    <tbody>
+                       <tr *ngFor="let item of data['{{ widget.id }}']">
+                          <td>\{\{ item.fullName || item.name || 'Record' \}\}</td>
+                          <td><span class="badge-status-active">Active</span></td>
+                       </tr>
+                    </tbody>
+                 </table>
+              </div>
+              
+              {% elsif widget.type == "Calendar" %}
+              <div class="calendar-widget">
+                 <span class="material-icons-outlined calendar-icon">calendar_month</span>
+                 <p class="calendar-text">Temporal View Ready</p>
+              </div>
+              
+              {% else %}
+              <div class="fallback-widget">Component Type '{{ widget.type }}' is ready for propagation.</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </main>
+    </div>
+  `,
+  styleUrl: './{{ name_lowered }}.component.css'
+})
+export class {{ name }}Dashboard implements OnInit {
+  data: any = {};
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit() {
+    this.refreshData();
+  }
+
+  refreshData() {
+    {% for widget in widgets %}
+    this.fetchWidgetData('{{ widget.id }}', '{{ widget.data_source.entity_name }}', '{{ widget.data_source.aggregate }}');
+    {% endfor %}
+  }
+
+  fetchWidgetData(widgetId: string, entity: string, aggregate: string) {
+     this.http.get(\`/api/runtime/\$\{entity\}/\$\{aggregate\}\`).subscribe(res => {
+        this.data[widgetId] = res;
+     });
+  }
+}

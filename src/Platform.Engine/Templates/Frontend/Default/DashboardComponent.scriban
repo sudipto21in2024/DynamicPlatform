@@ -94,11 +94,7 @@ import { HttpClient } from '@angular/common/http';
       </div>
     </div>
   `,
-  styles: [`
-    .glow-blue {
-        text-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-    }
-  `]
+  styleUrl: './{{ name_lowered }}.component.css'
 })
 export class {{ name }}Dashboard implements OnInit {
   data: any = {};
@@ -110,8 +106,6 @@ export class {{ name }}Dashboard implements OnInit {
   }
 
   refreshData() {
-    // In a real build, this calls the unified dashboard data engine
-    // For now, we simulate data fetching for each widget
     {% for widget in widgets %}
     this.fetchWidgetData('{{ widget.id }}', '{{ widget.data_source.entity_name }}', '{{ widget.data_source.aggregate }}');
     {% endfor %}

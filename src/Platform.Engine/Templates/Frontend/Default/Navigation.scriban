@@ -43,10 +43,9 @@ import { RouterModule } from '@angular/router';
       </div>
     </nav>
   `,
-  styles: []
+  styleUrl: './navigation.component.css'
 })
 export class NavigationComponent implements OnInit {
-  // This would be replaced with actual Auth Logic in the generated app
   userRoles: string[] = ['Administrator']; 
 
   constructor() {}
