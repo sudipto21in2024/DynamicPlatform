@@ -1,0 +1,68 @@
+package {{ PackageName }}.entities;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.util.*;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "{{ Name.toLowerCase() }}s")
+public class {{ Name }} {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private java.util.UUID id;
+
+    {{ for field in Fields }}
+    {{ if field.IsRequired }}@NotNull(message = "{{ field.Name }} is required"){{ end }}
+    {{ if field.MaxLength > 0 }}@Size(max = {{ field.MaxLength }}, message = "{{ field.Name }} exceeds max length"){{ end }}
+    {{ for rule in field.Rules }}
+    {{ if rule.Type == "Regex" }}@Pattern(regexp = "{{ rule.Value }}", message = "{{ rule.ErrorMessage }}"){{ end }}
+    {{ if rule.Type == "Email" }}@Email(message = "{{ rule.ErrorMessage }}"){{ end }}
+    {{ end }}
+    @Column(name = "{{ field.Name.toLowerCase() }}"{{ if field.IsRequired }}, nullable = false{{ end }})
+    private {{ field.JavaType }} {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }};
+
+    {{ end }}
+
+    {{ for rel in Relations }}
+    {{ if rel.Type == 1 || rel.Type == "ManyToOne" }}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "{{ rel.ForeignKeyName.toLowerCase() | object.default (rel.TargetEntity.toLowerCase() + "_id") }}")
+    private {{ rel.TargetEntity }} {{ rel.NavPropName.substring 0 1 | string.downcase }}{{ rel.NavPropName.substring 1 }};
+    {{ else if rel.Type == 0 || rel.Type == "OneToMany" || rel.Type == 2 || rel.Type == "ManyToMany" }}
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<{{ rel.TargetEntity }}> {{ rel.NavPropName.substring 0 1 | string.downcase }}{{ rel.NavPropName.substring 1 }} = new ArrayList<>();
+    {{ end }}
+    {{ end }}
+
+    // Getters and Setters
+    public java.util.UUID getId() {
+        return id;
+    }
+
+    public void setId(java.util.UUID id) {
+        this.id = id;
+    }
+
+    {{ for field in Fields }}
+    public {{ field.JavaType }} get{{ field.Name }}() {
+        return {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }};
+    }
+
+    public void set{{ field.Name }}({{ field.JavaType }} {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }}) {
+        this.{{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }} = {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }};
+    }
+    {{ end }}
+
+    {{ for rel in Relations }}
+    public {{ rel.TargetEntity }} get{{ rel.NavPropName }}() {
+        return {{ rel.NavPropName.substring 0 1 | string.downcase }}{{ rel.NavPropName.substring 1 }};
+    }
+
+    public void set{{ rel.NavPropName }}({{ rel.TargetEntity }} {{ rel.NavPropName.substring 0 1 | string.downcase }}{{ rel.NavPropName.substring 1 }}) {
+        this.{{ rel.NavPropName.substring 0 1 | string.downcase }}{{ rel.NavPropName.substring 1 }} = {{ rel.NavPropName.substring 0 1 | string.downcase }}{{ rel.NavPropName.substring 1 }};
+    }
+    {{ end }}
+}

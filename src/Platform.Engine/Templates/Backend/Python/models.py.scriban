@@ -1,0 +1,21 @@
+import uuid
+from datetime import datetime
+from typing import Optional, List
+from sqlmodel import SQLModel, Field, Relationship
+
+class {{ Name }}(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
+
+    {{ for field in Fields }}
+    {{ field.Name.toLowerCase() }}: {{ if field.IsRequired }}{{ field.PythonType }}{{ else }}Optional[{{ field.PythonType }}] = None{{ end }}{{ if field.MaxLength > 0 }} = Field(max_length={{ field.MaxLength }}){{ end }}
+    {{ end }}
+
+    # Relationships
+    {{ for rel in Relations }}
+    {{ if rel.Type == 1 || rel.Type == "ManyToOne" }}
+    {{ rel.ForeignKeyName.toLowerCase() | object.default (rel.TargetEntity.toLowerCase() + "_id") }}: uuid.UUID = Field(foreign_key="{{ rel.TargetEntity.toLowerCase() }}.id")
+    {{ rel.NavPropName.toLowerCase() }}: Optional["{{ rel.TargetEntity }}"] = Relationship(back_populates="{{ Name.toLowerCase() }}s")
+    {{ else if rel.Type == 0 || rel.Type == "OneToMany" }}
+    {{ rel.NavPropName.toLowerCase() }}s: List["{{ rel.TargetEntity }}"] = Relationship(back_populates="{{ Name.toLowerCase() }}")
+    {{ end }}
+    {{ end }}

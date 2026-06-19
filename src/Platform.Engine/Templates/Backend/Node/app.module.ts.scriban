@@ -1,0 +1,21 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+{{ for entity in Entities }}
+import { {{ entity.Name }} } from './entities/{{ entity.Name.toLowerCase() }}.entity';
+import { {{ entity.Name }}Module } from './modules/{{ entity.Name.toLowerCase() }}.module';
+{{ end }}
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: 'database.sqlite',
+      entities: [{{ for entity in Entities }}{{ entity.Name }}, {{ end }}],
+      synchronize: true,
+    }),
+    {{ for entity in Entities }}
+    {{ entity.Name }}Module,
+    {{ end }}
+  ],
+})
+public class AppModule {}

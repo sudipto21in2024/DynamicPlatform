@@ -1,0 +1,47 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { {{ Name }} } from '../entities/{{ Name.toLowerCase() }}.entity';
+
+@Injectable()
+export class {{ Name }}Service {
+  constructor(
+    @InjectRepository({{ Name }})
+    private readonly repository: Repository<{{ Name }}>,
+  ) {}
+
+  async findAll(pageIndex?: number, pageSize?: number): Promise<any> {
+    if (pageIndex !== undefined && pageSize !== undefined) {
+      const [items, totalCount] = await this.repository.findAndCount({
+        skip: pageIndex * pageSize,
+        take: pageSize,
+      });
+      return { items, totalCount };
+    }
+    return this.repository.find();
+  }
+
+  async findOne(id: string): Promise<{{ Name }}> {
+    const item = await this.repository.findOneBy({ id });
+    if (!item) {
+      throw new NotFoundException(`Item with ID ${id} not found`);
+    }
+    return item;
+  }
+
+  async create(data: Partial<{{ Name }}>): Promise<{{ Name }}> {
+    const item = this.repository.create(data);
+    return this.repository.save(item);
+  }
+
+  async update(id: string, data: Partial<{{ Name }}>): Promise<{{ Name }}> {
+    const item = await this.findOne(id);
+    Object.assign(item, data);
+    return this.repository.save(item);
+  }
+
+  async remove(id: string): Promise<void> {
+    const item = await this.findOne(id);
+    await this.repository.remove(item);
+  }
+}

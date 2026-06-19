@@ -1,0 +1,40 @@
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { {{ Name }}Service } from '../services/{{ Name.toLowerCase() }}.service';
+import { {{ Name }} } from '../entities/{{ Name.toLowerCase() }}.entity';
+
+@Controller('api/{{ Name.toLowerCase() }}s')
+export class {{ Name }}Controller {
+  constructor(private readonly service: {{ Name }}Service) {}
+
+  @Get()
+  async findAll(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return this.service.findAll(pageIndex, pageSize);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<{{ Name }}> {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  async create(@Body() data: Partial<{{ Name }}>): Promise<{{ Name }}> {
+    return this.service.create(data);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() data: Partial<{{ Name }}>,
+  ): Promise<{{ Name }}> {
+    return this.service.update(id, data);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.service.remove(id);
+  }
+}

@@ -1,0 +1,31 @@
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { IsNotEmpty, IsOptional, MaxLength, IsEmail, Matches } from 'class-validator';
+
+@Entity('{{ Name.toLowerCase() }}s')
+export class {{ Name }} {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  {{ for field in Fields }}
+  {{ if field.IsRequired }}@IsNotEmpty(){{ else }}@IsOptional(){{ end }}
+  {{ if field.MaxLength > 0 }}@MaxLength({{ field.MaxLength }}){{ end }}
+  {{ for rule in field.Rules }}
+  {{ if rule.Type == "Regex" }}@Matches(new RegExp('{{ rule.Value }}'), { message: '{{ rule.ErrorMessage }}' }){{ end }}
+  {{ if rule.Type == "Email" }}@IsEmail({}, { message: '{{ rule.ErrorMessage }}' }){{ end }}
+  {{ end }}
+  @Column({ name: '{{ field.Name.toLowerCase() }}', nullable: {{ !field.IsRequired }} })
+  {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }}: {{ field.TsType }};
+
+  {{ end }}
+
+  {{ for rel in Relations }}
+  {{ if rel.Type == 1 || rel.Type == "ManyToOne" }}
+  @ManyToOne(() => {{ rel.TargetEntity }}, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: '{{ rel.ForeignKeyName.toLowerCase() | object.default (rel.TargetEntity.toLowerCase() + "_id") }}' })
+  {{ rel.NavPropName.toLowerCase() }}: {{ rel.TargetEntity }};
+  {{ else if rel.Type == 0 || rel.Type == "OneToMany" || rel.Type == 2 || rel.Type == "ManyToMany" }}
+  @OneToMany(() => {{ rel.TargetEntity }}, (target) => target.{{ Name.toLowerCase() }})
+  {{ rel.NavPropName.toLowerCase() }}: {{ rel.TargetEntity }}[];
+  {{ end }}
+  {{ end }}
+}
