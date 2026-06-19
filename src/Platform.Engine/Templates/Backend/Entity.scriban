@@ -13,17 +13,28 @@ namespace {{ Namespace }};
 public partial class {{ Name }} : Entity
 {
     {{ for field in Fields }}
-    {{ if field.IsRequired }}[Required]{{ end }}
-    {{ if field.MaxLength > 0 }}[MaxLength({{ field.MaxLength }})]{{ end }}
+    {{ if field.DisplayLabel != "" }}[Display(Name = "{{ field.DisplayLabel }}")]{{ end }}
+    {{ if field.IsRequired }}[Required{{ if field.ValidationMessage != "" }}(ErrorMessage = "{{ field.ValidationMessage }}"){{ end }}]{{ end }}
+    {{ if field.MaxLength > 0 && field.MinLength > 0 }}[StringLength({{ field.MaxLength }}, MinimumLength = {{ field.MinLength }}, ErrorMessage = "{{ field.DisplayLabel }} must be between {{ field.MinLength }} and {{ field.MaxLength }} characters.")]
+    {{ else if field.MaxLength > 0 }}[MaxLength({{ field.MaxLength }})]
+    {{ else if field.MinLength > 0 }}[MinLength({{ field.MinLength }})]{{ end }}
+    {{ if field.IsUnique }}[Microsoft.EntityFrameworkCore.Index]{{ end }}
+    {{ if field.ColumnName != "" }}[Column("{{ field.ColumnName }}")]{{ end }}
     {{ for rule in field.Rules }}
     {{ if rule.Type == "Regex" }}[RegularExpression(@"{{ rule.Value }}", ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
     {{ if rule.Type == "Email" }}[EmailAddress(ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
     {{ if rule.Type == "Phone" }}[Phone(ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
+    {{ if rule.Type == "URL" }}[Url(ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
+    {{ if rule.Type == "CreditCard" }}[CreditCard(ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
     {{ if rule.Type == "Range" }}
     {{ rangeParams = rule.Value | string.split ',' }}
     [Range({{ rangeParams[0] }}, {{ rangeParams[1] }}, ErrorMessage = "{{ rule.ErrorMessage }}")]
     {{ end }}
+    {{ if rule.Type == "MinValue" }}[Range({{ rule.Value }}, double.MaxValue, ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
+    {{ if rule.Type == "MaxValue" }}[Range(double.MinValue, {{ rule.Value }}, ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
+    {{ if rule.Type == "Comparison" }}[Compare("{{ rule.CompareField }}", ErrorMessage = "{{ rule.ErrorMessage }}")]{{ end }}
     {{ end }}
+    {{ if field.DefaultValue != "" }}// Default: {{ field.DefaultValue }}{{ end }}
     public {{ field.CsharpType }} {{ field.Name }} { get; set; }
     {{ end }}
 

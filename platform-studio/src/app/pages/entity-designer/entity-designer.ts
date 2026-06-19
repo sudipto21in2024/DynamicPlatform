@@ -112,14 +112,14 @@ import { ProjectContextService } from '../../services/project-context';
     .btn-add.purple { background: rgba(168,85,247,0.1); color: #c084fc; }
     .btn-add.purple:hover { background: #a855f7; color: #fff; }
 
-    .field-card { p: 1rem; background: rgba(255,255,255,0.02); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; position: relative; overflow: hidden; margin-bottom: 0.75rem; }
+    .field-card { p: 1rem; background: rgba(255,255,255,0.02); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; position: relative; overflow: hidden; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .field-card:hover { border-color: rgba(59,130,246,0.3); }
     .field-accent { position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: rgba(59,130,246,0.2); transition: background 0.2s; }
     .field-card:hover .field-accent { background: #3b82f6; }
     .field-accent.purple { background: rgba(168,85,247,0.2); }
     .field-card:hover .field-accent.purple { background: #a855f7; }
 
-    .field-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .field-row { display: flex; align-items: center; justify-content: space-between; }
     .field-name-input { flex: 1; background: transparent; border: none; font-size: 0.875rem; font-weight: 900; color: #fff; outline: none; text-transform: uppercase; letter-spacing: -0.025em; padding: 0; }
     .field-actions { display: flex; align-items: center; gap: 0.25rem; }
     .action-btn { background: transparent; border: none; padding: 0.375rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; color: #475569; }
@@ -135,17 +135,25 @@ import { ProjectContextService } from '../../services/project-context';
     .btn-toggle.active { background: #2563eb; color: #fff; }
     .btn-toggle.inactive { background: rgba(255,255,255,0.05); color: #475569; }
 
-    .rules-panel { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); }
-    .rules-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; width: 100%; }
+    .meta-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.375rem; padding: 0.375rem 0.5rem; font-size: 10px; color: #cbd5e1; outline: none; box-sizing: border-box; }
+    .meta-input:focus { border-color: #3b82f6; }
+    
+    .checkbox-row { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 9px; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-top: 0.25rem; }
+    .checkbox-label { display: flex; align-items: center; gap: 0.25rem; cursor: pointer; }
+    .checkbox-label input { accent-color: #3b82f6; }
+
+    .rules-panel { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
+    .rules-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
     .rules-label { font-size: 9px; color: #60a5fa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.25rem; }
     .rules-label .material-icons-outlined { font-size: 0.75rem; }
     .btn-add-rule { background: transparent; border: none; font-size: 9px; font-weight: 900; color: #34d399; cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em; }
     .btn-add-rule:hover { color: #6ee7b7; }
 
-    .rule-item { background: rgba(0,0,0,0.6); padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.5rem; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
-    .rule-row { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.5rem; }
+    .rule-item { background: rgba(0,0,0,0.6); padding: 0.5rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.5rem; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
+    .rule-row { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.25rem; }
     .rule-type { background: transparent; border: none; font-size: 9px; font-weight: 900; color: #93c5fd; text-transform: uppercase; outline: none; }
-    .rule-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 10px; color: #cbd5e1; font-family: monospace; box-sizing: border-box; }
+    .rule-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.375rem; padding: 0.375rem; font-size: 10px; color: #cbd5e1; font-family: monospace; box-sizing: border-box; }
     .rule-error { width: 100%; background: transparent; border: none; font-size: 9px; color: #64748b; font-style: italic; font-weight: 500; outline: none; margin-top: 0.25rem; }
 
     .rel-header { display: flex; align-items: center; gap: 0.25rem; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #a78bfa; }
@@ -155,7 +163,6 @@ import { ProjectContextService } from '../../services/project-context';
     .rel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .rel-type-select { background: #1e293b; font-size: 9px; font-weight: 900; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; color: #c084fc; outline: none; text-transform: uppercase; cursor: pointer; }
     .rel-type-select option { background: #0f172a; color: #f1f5f9; }
-    .rel-alias { background: #1e293b; font-size: 9px; font-family: monospace; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem; color: #fff; outline: none; text-transform: uppercase; }
 
     .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
     .animate-pulse { animation: pulse 2s infinite; }
@@ -392,6 +399,7 @@ import { ProjectContextService } from '../../services/project-context';
                           <option value="datetime">DateTime</option>
                           <option value="decimal">Decimal</option>
                           <option value="bool">Boolean</option>
+                          <option value="enum">Enum</option>
                         </select>
                         <button (click)="field.isRequired = !field.isRequired; redrawCanvas()" 
                                 [class.active]="field.isRequired" 
@@ -399,6 +407,43 @@ import { ProjectContextService } from '../../services/project-context';
                                 class="btn-toggle">
                            Mandatory
                         </button>
+                      </div>
+
+                      <!-- Display Label & Placeholder -->
+                      <div class="meta-grid">
+                        <input type="text" [(ngModel)]="field.label" (ngModelChange)="redrawCanvas()" placeholder="Display Label" class="meta-input">
+                        <input type="text" [(ngModel)]="field.placeholder" (ngModelChange)="redrawCanvas()" placeholder="Placeholder text" class="meta-input">
+                      </div>
+
+                      <!-- Tooltip & Default Value -->
+                      <div class="meta-grid">
+                        <input type="text" [(ngModel)]="field.tooltip" (ngModelChange)="redrawCanvas()" placeholder="Tooltip text" class="meta-input">
+                        <input type="text" [(ngModel)]="field.defaultValue" (ngModelChange)="redrawCanvas()" placeholder="Default value" class="meta-input">
+                      </div>
+
+                      <!-- Enum Reference & Grid Span -->
+                      <div class="meta-grid" *ngIf="field.type === 'enum' || field.type === 'int'">
+                        <input *ngIf="field.type === 'enum'" type="text" [(ngModel)]="field.enumReference" (ngModelChange)="redrawCanvas()" placeholder="Enum Name Ref" class="meta-input">
+                        <input type="number" [(ngModel)]="field.gridSpan" (ngModelChange)="redrawCanvas()" placeholder="Grid Span (1-2)" min="1" max="2" class="meta-input">
+                      </div>
+
+                      <!-- Checkboxes (ReadOnly, Indexed, Unique, HideInTable, HideInForm) -->
+                      <div class="checkbox-row">
+                        <label class="checkbox-label">
+                          <input type="checkbox" [(ngModel)]="field.isReadOnly" (ngModelChange)="redrawCanvas()"> ReadOnly
+                        </label>
+                        <label class="checkbox-label">
+                          <input type="checkbox" [(ngModel)]="field.isIndexed" (ngModelChange)="redrawCanvas()"> Indexed
+                        </label>
+                        <label class="checkbox-label">
+                          <input type="checkbox" [(ngModel)]="field.isUnique" (ngModelChange)="redrawCanvas()"> Unique
+                        </label>
+                        <label class="checkbox-label">
+                          <input type="checkbox" [(ngModel)]="field.hideInTable" (ngModelChange)="redrawCanvas()"> HideTable
+                        </label>
+                        <label class="checkbox-label">
+                          <input type="checkbox" [(ngModel)]="field.hideInForm" (ngModelChange)="redrawCanvas()"> HideForm
+                        </label>
                       </div>
 
                       <!-- Rules -->
@@ -415,13 +460,22 @@ import { ProjectContextService } from '../../services/project-context';
                                           <option value="Range">Limit</option>
                                           <option value="Email">Mail</option>
                                           <option value="Phone">Tel</option>
+                                          <option value="MinLength">MinLength</option>
+                                          <option value="MinValue">MinValue</option>
+                                          <option value="MaxValue">MaxValue</option>
+                                          <option value="URL">URL</option>
+                                          <option value="CreditCard">CreditCard</option>
+                                          <option value="Comparison">Comparison</option>
                                       </select>
                                       <button (click)="removeRule(field, ri)" style="background:none;border:none;color:#475569;cursor:pointer">
                                           <span class="material-icons-outlined" style="font-size:16px">remove_circle_outline</span>
                                       </button>
                                   </div>
-                                  <div *ngIf="rule.type === 'Regex' || rule.type === 'Range'">
-                                      <input type="text" [(ngModel)]="rule.value" (ngModelChange)="redrawCanvas()" placeholder="Definition..." class="rule-input">
+                                  <div *ngIf="rule.type === 'Regex' || rule.type === 'Range' || rule.type === 'MinLength' || rule.type === 'MinValue' || rule.type === 'MaxValue' || rule.type === 'Comparison'">
+                                      <input type="text" [(ngModel)]="rule.value" (ngModelChange)="redrawCanvas()" [placeholder]="rule.type === 'Comparison' ? 'Operator (e.g. GreaterThan, Equal)' : 'Definition...'" class="rule-input">
+                                  </div>
+                                  <div *ngIf="rule.type === 'Comparison'" style="margin-top: 0.25rem;">
+                                      <input type="text" [(ngModel)]="rule.compareField" (ngModelChange)="redrawCanvas()" placeholder="Field to compare to..." class="rule-input">
                                   </div>
                                   <input type="text" [(ngModel)]="rule.errorMessage" (ngModelChange)="redrawCanvas()" placeholder="Fault message..." class="rule-error">
                               </div>
@@ -1029,7 +1083,28 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
   addField() {
     if (this.selectedNode) {
       if (!this.selectedNode.fields) this.selectedNode.fields = [];
-      this.selectedNode.fields.push({ name: 'NEW_PROPERTY', type: 'string', isRequired: false });
+      this.selectedNode.fields.push({
+        name: 'NEW_PROPERTY',
+        type: 'string',
+        isRequired: false,
+        label: '',
+        placeholder: '',
+        tooltip: '',
+        defaultValue: '',
+        validationMessage: '',
+        isReadOnly: false,
+        isComputed: false,
+        minLength: 0,
+        isIndexed: false,
+        isUnique: false,
+        columnName: '',
+        displayOrder: this.selectedNode.fields.length,
+        gridSpan: 1,
+        hideInTable: false,
+        hideInForm: false,
+        enumReference: '',
+        rules: []
+      });
       this.redrawCanvas();
     }
   }
@@ -1066,7 +1141,8 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
     field.rules.push({
       type: 'Regex',
       value: '',
-      errorMessage: 'Invalid property value'
+      errorMessage: 'Invalid property value',
+      compareField: ''
     });
     this.redrawCanvas();
   }
@@ -1091,15 +1167,17 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
     // Build fields list helper
     const buildFormFields = (mode: string) => {
       return (entity.fields || []).map((field: any, index: number) => {
-        const label = field.name
+        const autoLabel = field.name
           .replace(/([A-Z])/g, ' $1')
           .trim();
 
-        let placeholder = `Enter ${label}`;
-        if (field.type === 'datetime') {
-          placeholder = 'Pick a date';
-        } else if (field.type === 'bool') {
-          placeholder = '';
+        let placeholder = field.placeholder || `Enter ${field.label || autoLabel}`;
+        if (!field.placeholder) {
+          if (field.type === 'datetime') {
+            placeholder = 'Pick a date';
+          } else if (field.type === 'bool') {
+            placeholder = '';
+          }
         }
 
         let validationPattern = '';
@@ -1110,23 +1188,23 @@ export class EntityDesigner implements AfterViewInit, OnDestroy {
           }
         }
 
-        const isDescription = field.name.toLowerCase().includes('desc') || field.name.toLowerCase().includes('description');
-
         return {
           Name: field.name,
           Type: field.type,
-          Label: label,
+          Label: field.label || autoLabel,
           Placeholder: placeholder,
-          Tooltip: '',
-          DefaultValue: '',
+          Tooltip: field.tooltip || '',
+          DefaultValue: field.defaultValue || '',
           IsRequired: !!field.isRequired,
           ValidationPattern: validationPattern,
-          EnumReference: '',
+          EnumReference: field.enumReference || '',
           ElementId: `${entityName.toLowerCase()}_${mode.toLowerCase()}_${field.name.toLowerCase()}`,
           CssClass: '',
           Style: '',
-          GridSpan: isDescription ? 2 : 1,
-          Order: index
+          GridSpan: field.gridSpan || 1,
+          Order: field.displayOrder ?? index,
+          HideInTable: field.hideInTable || false,
+          HideInForm: field.hideInForm || false
         };
       });
     };

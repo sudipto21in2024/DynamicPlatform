@@ -6,12 +6,20 @@ namespace {{ root_namespace }}.Domain.Forms
     public class {{ name }}Form
     {
         {{~ for field in fields ~}}
-        [Display(Name = "{{ field.label }}")]
+        [Display(Name = "{{ field.display_label | object.default field.label }}")]
         {{~ if field.is_required ~}}
-        [Required(ErrorMessage = "{{ field.label }} is required.")]
+        [Required(ErrorMessage = "{{ field.validation_message | object.default (field.display_label + " is required.") }}")]
+        {{~ end ~}}
+        {{~ if field.max_length > 0 && field.min_length > 0 ~}}
+        [StringLength({{ field.max_length }}, MinimumLength = {{ field.min_length }}, ErrorMessage = "{{ field.display_label }} must be between {{ field.min_length }} and {{ field.max_length }} characters.")]
+        {{~ else if field.max_length > 0 ~}}
+        [MaxLength({{ field.max_length }})]
         {{~ end ~}}
         {{~ if field.validation_pattern ~}}
-        [RegularExpression(@"{{ field.validation_pattern }}", ErrorMessage = "Invalid format for {{ field.label }}.")]
+        [RegularExpression(@"{{ field.validation_pattern }}", ErrorMessage = "Invalid format for {{ field.display_label | object.default field.label }}.")]
+        {{~ end ~}}
+        {{~ if field.is_read_only ~}}
+        [Editable(false)]
         {{~ end ~}}
         public {{ field.type | string.downcase == "string" ? "string" : field.type }} {{ field.name }} { get; set; }
 

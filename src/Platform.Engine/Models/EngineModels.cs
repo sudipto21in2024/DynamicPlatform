@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Platform.Engine.Models;
 
@@ -25,13 +26,63 @@ public class FieldMetadata
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
-    public string Type { get; set; } = "string"; // "string", "int", "guid"
+    public string Type { get; set; } = "string"; // "string", "int", "guid", "datetime", "decimal", "bool", "enum"
     public bool IsRequired { get; set; }
     public int MaxLength { get; set; }
     
     public List<ValidationRule> Rules { get; set; } = new();
 
-    // Helper for Scriban
+    // ── Display Metadata ──
+    /// <summary>Human-readable label (e.g. "First Name"). Auto-generated from Name if empty.</summary>
+    public string Label { get; set; } = string.Empty;
+    /// <summary>Input placeholder text (e.g. "Enter first name").</summary>
+    public string Placeholder { get; set; } = string.Empty;
+    /// <summary>Help icon hover text for contextual guidance.</summary>
+    public string Tooltip { get; set; } = string.Empty;
+    /// <summary>Longer description or help text for the field.</summary>
+    public string Description { get; set; } = string.Empty;
+    /// <summary>Custom error message when the field fails "required" validation.</summary>
+    public string ValidationMessage { get; set; } = string.Empty;
+
+    // ── Defaults & Behavior ──
+    /// <summary>Default value for new records (stored as string, parsed at runtime).</summary>
+    public string DefaultValue { get; set; } = string.Empty;
+    /// <summary>If true, field is non-editable after initial creation.</summary>
+    public bool IsReadOnly { get; set; }
+    /// <summary>If true, field is computed server-side and not user-entered.</summary>
+    public bool IsComputed { get; set; }
+
+    // ── Database Hints ──
+    /// <summary>Minimum string length constraint.</summary>
+    public int MinLength { get; set; }
+    /// <summary>If true, a database index is created on this column.</summary>
+    public bool IsIndexed { get; set; }
+    /// <summary>If true, a unique constraint is applied to this column.</summary>
+    public bool IsUnique { get; set; }
+    /// <summary>Override the default database column name.</summary>
+    public string ColumnName { get; set; } = string.Empty;
+
+    // ── UI Control Hints ──
+    /// <summary>Sort order in forms and tables (lower = first).</summary>
+    public int DisplayOrder { get; set; }
+    /// <summary>Number of grid columns the field spans in form layouts (1 or 2).</summary>
+    public int GridSpan { get; set; } = 1;
+    /// <summary>If true, exclude from list/table views.</summary>
+    public bool HideInTable { get; set; }
+    /// <summary>If true, exclude from form generation.</summary>
+    public bool HideInForm { get; set; }
+
+    // ── Lookup/Enum Reference ──
+    /// <summary>Name of the linked EnumMetadata when Type is "enum".</summary>
+    public string EnumReference { get; set; } = string.Empty;
+
+    // ── Scriban Helpers ──
+    /// <summary>Auto-generate a display label from the Name if Label is empty (e.g. "FirstName" → "First Name").</summary>
+    public string DisplayLabel => string.IsNullOrEmpty(Label)
+        ? Regex.Replace(Name, "([A-Z])", " $1").Trim()
+        : Label;
+
+    /// <summary>Maps the field type to a C# type string for code generation.</summary>
     public string CsharpType => Type.ToLower() switch 
     {
         "string" => "string",
@@ -40,7 +91,43 @@ public class FieldMetadata
         "datetime" => "DateTime",
         "decimal" => "decimal",
         "bool" => "bool",
-        _ => Type // If it's not a primitive, assume it's a custom Enum or Entity reference
+        _ => Type // Custom Enum or Entity reference
+    };
+
+    /// <summary>Maps the field type to a Java type string for code generation.</summary>
+    public string JavaType => Type.ToLower() switch
+    {
+        "string" => "String",
+        "int" => "Integer",
+        "guid" => "java.util.UUID",
+        "datetime" => "LocalDateTime",
+        "decimal" => "BigDecimal",
+        "bool" => "Boolean",
+        _ => Type
+    };
+
+    /// <summary>Maps the field type to a Python type string for code generation.</summary>
+    public string PythonType => Type.ToLower() switch
+    {
+        "string" => "str",
+        "int" => "int",
+        "guid" => "uuid.UUID",
+        "datetime" => "datetime",
+        "decimal" => "float",
+        "bool" => "bool",
+        _ => Type
+    };
+
+    /// <summary>Maps the field type to a TypeScript type string for code generation.</summary>
+    public string TsType => Type.ToLower() switch
+    {
+        "string" => "string",
+        "int" => "number",
+        "guid" => "string",
+        "datetime" => "Date",
+        "decimal" => "number",
+        "bool" => "boolean",
+        _ => Type
     };
 }
 
@@ -61,9 +148,14 @@ public class EnumValue
 
 public class ValidationRule
 {
-    public string Type { get; set; } = string.Empty; // "Regex", "Range", "Email"
+    /// <summary>Rule type: Regex, Range, Email, Phone, MinLength, MinValue, MaxValue, URL, CreditCard, Comparison, Custom.</summary>
+    public string Type { get; set; } = string.Empty;
+    /// <summary>Rule parameter value (e.g. regex pattern, "min,max" for Range, numeric threshold).</summary>
     public string Value { get; set; } = string.Empty;
+    /// <summary>Error message displayed when validation fails.</summary>
     public string ErrorMessage { get; set; } = string.Empty;
+    /// <summary>For "Comparison" type: the name of the other field to compare against.</summary>
+    public string CompareField { get; set; } = string.Empty;
 }
 
 public enum RelationType

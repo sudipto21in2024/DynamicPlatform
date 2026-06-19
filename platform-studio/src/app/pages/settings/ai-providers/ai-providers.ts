@@ -16,7 +16,7 @@ const PROVIDER_PRESETS: Record<string, { baseUrl: string; model: string }> = {
 @Component({
   selector: 'app-ai-providers',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   styles: [`
     .page { padding: 2rem; max-width: 860px; margin: 0 auto; }
     .page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }

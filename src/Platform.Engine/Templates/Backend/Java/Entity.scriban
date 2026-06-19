@@ -2,12 +2,13 @@ package {{ PackageName }}.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import org.hibernate.validator.constraints.URL;
 import java.util.*;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "{{ Name.toLowerCase() }}s")
+@Table(name = "{{ Name.toLowerCase() }}s"{{ for field in Fields }}{{ if field.IsUnique }}, uniqueConstraints = @UniqueConstraint(columnNames = "{{ field.ColumnName | object.default field.Name.toLowerCase() }}"){{ end }}{{ end }})
 public class {{ Name }} {
 
     @Id
@@ -15,13 +16,18 @@ public class {{ Name }} {
     private java.util.UUID id;
 
     {{ for field in Fields }}
-    {{ if field.IsRequired }}@NotNull(message = "{{ field.Name }} is required"){{ end }}
-    {{ if field.MaxLength > 0 }}@Size(max = {{ field.MaxLength }}, message = "{{ field.Name }} exceeds max length"){{ end }}
+    {{ if field.IsRequired }}@NotNull(message = "{{ field.ValidationMessage | object.default (field.DisplayLabel + " is required") }}"){{ end }}
+    {{ if field.MaxLength > 0 && field.MinLength > 0 }}@Size(min = {{ field.MinLength }}, max = {{ field.MaxLength }}, message = "{{ field.DisplayLabel }} must be between {{ field.MinLength }} and {{ field.MaxLength }} characters")
+    {{ else if field.MaxLength > 0 }}@Size(max = {{ field.MaxLength }}, message = "{{ field.DisplayLabel }} exceeds max length")
+    {{ else if field.MinLength > 0 }}@Size(min = {{ field.MinLength }}, message = "{{ field.DisplayLabel }} must be at least {{ field.MinLength }} characters"){{ end }}
     {{ for rule in field.Rules }}
     {{ if rule.Type == "Regex" }}@Pattern(regexp = "{{ rule.Value }}", message = "{{ rule.ErrorMessage }}"){{ end }}
     {{ if rule.Type == "Email" }}@Email(message = "{{ rule.ErrorMessage }}"){{ end }}
+    {{ if rule.Type == "URL" }}@URL(message = "{{ rule.ErrorMessage }}"){{ end }}
+    {{ if rule.Type == "MinValue" }}@DecimalMin(value = "{{ rule.Value }}", message = "{{ rule.ErrorMessage }}"){{ end }}
+    {{ if rule.Type == "MaxValue" }}@DecimalMax(value = "{{ rule.Value }}", message = "{{ rule.ErrorMessage }}"){{ end }}
     {{ end }}
-    @Column(name = "{{ field.Name.toLowerCase() }}"{{ if field.IsRequired }}, nullable = false{{ end }})
+    @Column(name = "{{ field.ColumnName | object.default field.Name.toLowerCase() }}"{{ if field.IsRequired }}, nullable = false{{ end }}{{ if field.IsUnique }}, unique = true{{ end }})
     private {{ field.JavaType }} {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }};
 
     {{ end }}

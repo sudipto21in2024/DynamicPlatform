@@ -1,5 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { IsNotEmpty, IsOptional, MaxLength, IsEmail, Matches } from 'class-validator';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn, Index, Unique } from 'typeorm';
+import { IsNotEmpty, IsOptional, MaxLength, MinLength, IsEmail, Matches, IsUrl, IsCreditCard, Min, Max } from 'class-validator';
 
 @Entity('{{ Name.toLowerCase() }}s')
 export class {{ Name }} {
@@ -7,13 +7,19 @@ export class {{ Name }} {
   id: string;
 
   {{ for field in Fields }}
-  {{ if field.IsRequired }}@IsNotEmpty(){{ else }}@IsOptional(){{ end }}
-  {{ if field.MaxLength > 0 }}@MaxLength({{ field.MaxLength }}){{ end }}
+  {{ if field.IsRequired }}@IsNotEmpty({ message: '{{ field.ValidationMessage | object.default (field.DisplayLabel + " is required") }}' }){{ else }}@IsOptional(){{ end }}
+  {{ if field.MaxLength > 0 }}@MaxLength({{ field.MaxLength }}, { message: '{{ field.DisplayLabel }} exceeds max length of {{ field.MaxLength }}' }){{ end }}
+  {{ if field.MinLength > 0 }}@MinLength({{ field.MinLength }}, { message: '{{ field.DisplayLabel }} must be at least {{ field.MinLength }} characters' }){{ end }}
   {{ for rule in field.Rules }}
   {{ if rule.Type == "Regex" }}@Matches(new RegExp('{{ rule.Value }}'), { message: '{{ rule.ErrorMessage }}' }){{ end }}
   {{ if rule.Type == "Email" }}@IsEmail({}, { message: '{{ rule.ErrorMessage }}' }){{ end }}
+  {{ if rule.Type == "URL" }}@IsUrl({}, { message: '{{ rule.ErrorMessage }}' }){{ end }}
+  {{ if rule.Type == "CreditCard" }}@IsCreditCard({ message: '{{ rule.ErrorMessage }}' }){{ end }}
+  {{ if rule.Type == "MinValue" }}@Min({{ rule.Value }}, { message: '{{ rule.ErrorMessage }}' }){{ end }}
+  {{ if rule.Type == "MaxValue" }}@Max({{ rule.Value }}, { message: '{{ rule.ErrorMessage }}' }){{ end }}
   {{ end }}
-  @Column({ name: '{{ field.Name.toLowerCase() }}', nullable: {{ !field.IsRequired }} })
+  {{ if field.IsIndexed }}@Index(){{ end }}
+  @Column({ name: '{{ field.ColumnName | object.default field.Name.toLowerCase() }}', nullable: {{ !field.IsRequired }}{{ if field.IsUnique }}, unique: true{{ end }}{{ if field.DefaultValue != "" }}, default: '{{ field.DefaultValue }}'{{ end }} })
   {{ field.Name.substring 0 1 | string.downcase }}{{ field.Name.substring 1 }}: {{ field.TsType }};
 
   {{ end }}

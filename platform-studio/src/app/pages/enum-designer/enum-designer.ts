@@ -20,7 +20,7 @@ interface EnumMetadata {
 @Component({
     selector: 'app-enum-designer',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterLink],
+    imports: [CommonModule, FormsModule],
     styles: [`
     :host { display: block; }
     .studio-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow: hidden; }

@@ -2,12 +2,14 @@ import uuid
 from datetime import datetime
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
+from pydantic import field_validator
+import re
 
 class {{ Name }}(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
 
     {{ for field in Fields }}
-    {{ field.Name.toLowerCase() }}: {{ if field.IsRequired }}{{ field.PythonType }}{{ else }}Optional[{{ field.PythonType }}] = None{{ end }}{{ if field.MaxLength > 0 }} = Field(max_length={{ field.MaxLength }}){{ end }}
+    {{ if field.IsRequired }}{{ field.Name.toLowerCase() }}: {{ field.PythonType }}{{ if field.MaxLength > 0 && field.MinLength > 0 }} = Field(min_length={{ field.MinLength }}, max_length={{ field.MaxLength }}){{ else if field.MaxLength > 0 }} = Field(max_length={{ field.MaxLength }}){{ else if field.MinLength > 0 }} = Field(min_length={{ field.MinLength }}){{ else if field.DefaultValue != "" }} = Field(default={{ field.DefaultValue }}){{ end }}{{ else }}{{ field.Name.toLowerCase() }}: Optional[{{ field.PythonType }}]{{ if field.MaxLength > 0 && field.MinLength > 0 }} = Field(default=None, min_length={{ field.MinLength }}, max_length={{ field.MaxLength }}){{ else if field.MaxLength > 0 }} = Field(default=None, max_length={{ field.MaxLength }}){{ else if field.MinLength > 0 }} = Field(default=None, min_length={{ field.MinLength }}){{ else }} = None{{ end }}{{ end }}
     {{ end }}
 
     # Relationships
@@ -17,5 +19,50 @@ class {{ Name }}(SQLModel, table=True):
     {{ rel.NavPropName.toLowerCase() }}: Optional["{{ rel.TargetEntity }}"] = Relationship(back_populates="{{ Name.toLowerCase() }}s")
     {{ else if rel.Type == 0 || rel.Type == "OneToMany" }}
     {{ rel.NavPropName.toLowerCase() }}s: List["{{ rel.TargetEntity }}"] = Relationship(back_populates="{{ Name.toLowerCase() }}")
+    {{ end }}
+    {{ end }}
+
+    {{ for field in Fields }}
+    {{ for rule in field.Rules }}
+    {{ if rule.Type == "Email" }}
+    @field_validator("{{ field.Name.toLowerCase() }}")
+    @classmethod
+    def validate_{{ field.Name.toLowerCase() }}_email(cls, v):
+        if v and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("{{ rule.ErrorMessage }}")
+        return v
+    {{ end }}
+    {{ if rule.Type == "Regex" }}
+    @field_validator("{{ field.Name.toLowerCase() }}")
+    @classmethod
+    def validate_{{ field.Name.toLowerCase() }}_pattern(cls, v):
+        if v and not re.match(r"{{ rule.Value }}", v):
+            raise ValueError("{{ rule.ErrorMessage }}")
+        return v
+    {{ end }}
+    {{ if rule.Type == "URL" }}
+    @field_validator("{{ field.Name.toLowerCase() }}")
+    @classmethod
+    def validate_{{ field.Name.toLowerCase() }}_url(cls, v):
+        if v and not re.match(r"^https?://[^\s/$.?#].[^\s]*$", v, re.IGNORECASE):
+            raise ValueError("{{ rule.ErrorMessage }}")
+        return v
+    {{ end }}
+    {{ if rule.Type == "MinValue" }}
+    @field_validator("{{ field.Name.toLowerCase() }}")
+    @classmethod
+    def validate_{{ field.Name.toLowerCase() }}_min(cls, v):
+        if v is not None and v < {{ rule.Value }}:
+            raise ValueError("{{ rule.ErrorMessage }}")
+        return v
+    {{ end }}
+    {{ if rule.Type == "MaxValue" }}
+    @field_validator("{{ field.Name.toLowerCase() }}")
+    @classmethod
+    def validate_{{ field.Name.toLowerCase() }}_max(cls, v):
+        if v is not None and v > {{ rule.Value }}:
+            raise ValueError("{{ rule.ErrorMessage }}")
+        return v
+    {{ end }}
     {{ end }}
     {{ end }}
